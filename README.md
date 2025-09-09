@@ -17,6 +17,7 @@ Built with **Node.js** and **PostgreSQL**, it follows modern backend best practi
 ---
 
 ## 📂 Project Structure
+```bash
 community-api/
 ├── src/
 │ ├── routes/ # API route definitions
@@ -27,10 +28,8 @@ community-api/
 ├── tests/ # Unit and integration tests
 ├── .env.example # Example environment variables
 └── package.json
-
-yaml
+```
 ---
-
 ## ⚙️ Setup & Installation
 
 ### 1. Clone the repository
