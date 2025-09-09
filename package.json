@@ -1,0 +1,47 @@
+{
+  "name": "community-api-backend",
+  "version": "1.0.0",
+  "description": "Backend repository for Devbyte community online platform",
+  "main": "src/server.js",
+  "scripts": {
+    "test": "echo \"No tests specified\" && exit 0",
+    "start:prod": "node src/server.js",
+    "start:dev": "nodemon",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^5.1.0",
+    "helmet": "^7.0.0",
+    "morgan": "^1.10.1",
+    "nodemon": "^3.1.10"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.3.0",
+    "supertest": "^7.1.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DevByte-Community/Community-API-Backend.git"
+  },
+  "keywords": [
+    "community",
+    "api",
+    "express",
+    "backend",
+    "open-source"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DevByte-Community/Community-API-Backend/issues"
+  },
+  "homepage": "https://github.com/DevByte-Community/Community-API-Backend#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
