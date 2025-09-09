@@ -35,7 +35,7 @@ yaml
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/DevByte-Community/community-api.git
+git clone https://github.com/DevByte-Community/community-api-backend.git
 cd community-api
 ```
 ### 2. Install dependencies
