@@ -1,4 +1,4 @@
-# DevByte API
+# DevByte Community API (Backend)
 
 The **DevByte API** is the backend service powering the DevByte Community Website.  
 It provides secure endpoints for user management, content delivery, and community interactions.  
@@ -75,8 +75,8 @@ npm test
 ```
 
 ## 🤝 Contributing
-Please read our Contributing Guidelines before submitting pull requests.
+Please read our [CONTRIBUTING](./CONTRIBUTING.md) Guidelines before submitting pull requests.
 All contributions are welcome — from bug fixes to major feature proposals.
 
 ## 📜 License
-This project is licensed under the MIT License.
+This project is licensed under the MIT [LICENSE](./LICENSE.md).
