@@ -11,9 +11,9 @@ Built with **Node.js** and **PostgreSQL**, it follows modern backend best practi
 - **Runtime:** Node.js
 - **Framework:** Express.js
 - **Database:** PostgreSQL
-- **ORM/Query Builder:** (e.g., Prisma, Sequelize, or Knex – update once chosen)
-- **Testing:** Jest / Supertest (to be defined)
-- **API Style:** REST (GraphQL if planned later)
+- **ORM/Query Builder:** Sequelize
+- **Testing:** Jest (+ Supertest for integration)
+- **API Style:** REST
 
 ---
 
@@ -76,10 +76,16 @@ JWT_SECRET=your_secret_key
 npx prisma migrate dev   # Example for Prisma
 ```
 
-### 5. Start the server
+### 5. Start the server (development - with nodemon)
 
 ```bash
-npm run dev
+npm run start:dev
+```
+
+### 6. Start the server (production)
+
+```bash
+npm run start:prod
 ```
 
 ## 📡 API Endpoints (Planned)
