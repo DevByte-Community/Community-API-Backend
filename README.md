@@ -47,7 +47,7 @@ community-api-backend/
 
 ```bash
 git clone https://github.com/DevByte-Community/community-api-backend.git
-cd community-api
+cd community-api-backend
 ```
 
 ### 2. Install dependencies
