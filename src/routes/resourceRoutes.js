@@ -6,15 +6,12 @@
  * - POST /api/resources
  */
 
-const express = require("express");
-const {
-  getResources,
-  createResource,
-} = require("../controllers/resourceController");
+const express = require('express');
+const { getResources, createResource } = require('../controllers/resourceController');
 
 const router = express.Router();
 
-router.get("/", getResources);
-router.post("/", createResource);
+router.get('/', getResources);
+router.post('/', createResource);
 
 module.exports = router;

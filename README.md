@@ -98,6 +98,71 @@ GET /api/v1/posts Fetch community posts
 
 (More endpoints will be added as the design is finalized.)
 
+## 💅 Code Style & Linting
+
+We use ESLint and Prettier to maintain consistent code style and catch potential issues. The configuration is already set up and includes:
+
+- ESLint with recommended rules for Node.js
+- Prettier for consistent code formatting
+- Pre-commit hooks to ensure code quality
+
+### Available Scripts
+
+```bash
+# Check code for style and potential issues
+npm run lint
+
+# Automatically fix ESLint issues
+npm run lint:fix
+
+# Format code with Prettier
+npm run format
+```
+
+### Pre-commit Hooks
+
+The project uses Husky and lint-staged to run checks before each commit:
+
+1. Linting and formatting on staged files
+2. Running all tests
+
+This ensures that all committed code meets our quality standards. If you need to bypass these checks in an emergency (not recommended), you can use:
+
+```bash
+git commit --no-verify
+```
+
+### Code Style Decisions
+
+We've made specific code style choices to ensure consistency and maintainability across the project:
+
+#### JavaScript Standards
+- Uses modern ES2021+ features
+- Enforces const declarations when variables aren't reassigned
+- Prohibits use of var (use let or const instead)
+- Requires explicit error handling (no process.exit calls)
+
+#### Formatting Rules (Prettier)
+- Line length: Maximum 100 characters
+- Quotes: Single quotes for strings
+- Semicolons: Required at end of statements
+- Indentation: 2 spaces
+- Trailing commas: ES5 style (for cleaner git diffs)
+- Line endings: LF (Unix-style)
+
+#### Error Prevention (ESLint)
+- Unused variables must be prefixed with underscore (e.g., `_unused`)
+- Console usage is restricted to `console.log` and `console.error`
+- Node.js and Jest environments are preconfigured
+- Integrates with Prettier to avoid conflicts
+
+### Configuration Files
+
+- `.eslintrc.json` - ESLint rules configuration
+- `.prettierrc.json` - Prettier formatting options
+- `.husky/pre-commit` - Pre-commit hook configuration
+- `package.json` - Contains lint-staged configuration
+
 ## 🧪 Testing
 
 Run tests locally:
