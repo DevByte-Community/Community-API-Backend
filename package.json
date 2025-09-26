@@ -8,8 +8,9 @@
     "start:prod": "node src/server.js",
     "start:dev": "nodemon",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
+    "db:start": "docker-compose up -d postgres",
+    "db:stop": "docker-compose down",
     "prepare": "husky install"
   },
   "lint-staged": {
@@ -17,6 +18,7 @@
       "eslint --fix",
       "prettier --write"
     ]
+
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -24,7 +26,8 @@
     "express": "^5.1.0",
     "helmet": "^7.0.0",
     "morgan": "^1.10.1",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "pg": "^8.16.3"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
