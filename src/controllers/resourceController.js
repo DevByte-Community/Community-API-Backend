@@ -9,10 +9,10 @@
 
 // GET all resources
 export const getResources = (req, res) => {
-  res.json({ message: "List of learning resources (to be implemented)" });
+  res.json({ message: 'List of learning resources (to be implemented)' });
 };
 
 // POST new resource
 export const createResource = (req, res) => {
-  res.json({ message: "Resource creation (to be implemented)" });
+  res.json({ message: 'Resource creation (to be implemented)' });
 };

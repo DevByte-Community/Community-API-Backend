@@ -4,9 +4,9 @@
  * Sets up the Express app, middleware, and routes.
  */
 
-const express = require("express");
-const morgan = require("morgan");
-const cors = require("cors");
+const express = require('express');
+const morgan = require('morgan');
+const cors = require('cors');
 
 const routes = require("./routes"); // auto-loads index.js from routes folder
 // const globalErrorHandler = require("./controllers/errorController");
@@ -16,19 +16,20 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(morgan("dev"));
+app.use(morgan('dev'));
 
 // API routes
-// app.use("/api", routes);
-app.use("/api/v1", routes);
+
 
 
 // app.use(globalErrorHandler);
 
+app.use('/api', routes);
+
 
 // Health check route
-app.get("/", (req, res) => {
-  res.json({ message: "Welcome to the DevByte Community API 🚀" });
+app.get('/', (req, res) => {
+  res.json({ message: 'Welcome to the DevByte Community API 🚀' });
 });
 
 // Test DB route
@@ -50,9 +51,9 @@ app.use((req, res, next) => {
 });
 
 // Error handling middleware
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error(err.stack);
-  res.status(500).json({ error: "Something went wrong!" });
+  res.status(500).json({ error: 'Something went wrong!' });
 });
 
 module.exports = app;
