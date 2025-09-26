@@ -4,7 +4,7 @@ const { Pool } = require('pg');
 // Create a connection pool
 const pool = new Pool({
   user: process.env.POSTGRES_USER,
-  host: 'localhost',          // if your Node app is running locally
+  host: process.env.POSTGRES_HOST,          // if your Node app is running locally and DB is also local, use 'localhost'
   database: process.env.POSTGRES_DB,
   password: process.env.POSTGRES_PASSWORD,
   port: process.env.POSTGRES_PORT,
