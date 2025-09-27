@@ -137,12 +137,14 @@ git commit --no-verify
 We've made specific code style choices to ensure consistency and maintainability across the project:
 
 #### JavaScript Standards
+
 - Uses modern ES2021+ features
 - Enforces const declarations when variables aren't reassigned
 - Prohibits use of var (use let or const instead)
 - Requires explicit error handling (no process.exit calls)
 
 #### Formatting Rules (Prettier)
+
 - Line length: Maximum 100 characters
 - Quotes: Single quotes for strings
 - Semicolons: Required at end of statements
@@ -151,6 +153,7 @@ We've made specific code style choices to ensure consistency and maintainability
 - Line endings: LF (Unix-style)
 
 #### Error Prevention (ESLint)
+
 - Unused variables must be prefixed with underscore (e.g., `_unused`)
 - Console usage is restricted to `console.log` and `console.error`
 - Node.js and Jest environments are preconfigured

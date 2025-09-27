@@ -1,29 +1,26 @@
 require('dotenv').config();
-const { Pool } = require('pg');
+const { Sequelize } = require('sequelize');
 
-// Create a connection pool
-const pool = new Pool({
-  user: process.env.POSTGRES_USER,
-  host: process.env.POSTGRES_HOST,          // if your Node app is running locally and DB is also local, use 'localhost'
-  database: process.env.POSTGRES_DB,
-  password: process.env.POSTGRES_PASSWORD,
-  port: process.env.POSTGRES_PORT,
-});
+const sequelize = new Sequelize(
+  process.env.POSTGRES_DB,
+  process.env.POSTGRES_USER,
+  process.env.POSTGRES_PASSWORD,
+  {
+    host: process.env.POSTGRES_HOST,
+    port: process.env.POSTGRES_PORT,
+    dialect: 'postgres',
+    logging: false, // disable noisy SQL logs
+  }
+);
 
 // Test the connection
 (async () => {
   try {
-    const client = await pool.connect();
-    console.log("✅ Connected to PostgreSQL");
-
-    // Run a simple query
-    const res = await client.query('SELECT NOW()');
-    console.log("🕒 Current time from DB:", res.rows[0]);
-
-    client.release();
+    await sequelize.authenticate();
+    console.log('✅ Connected to PostgreSQL via Sequelize');
   } catch (err) {
-    console.error("❌ DB connection error:", err);
+    console.error('❌ DB connection error:', err);
   }
 })();
 
-module.exports = pool;
+module.exports = sequelize;

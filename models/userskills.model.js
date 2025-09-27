@@ -9,13 +9,13 @@ module.exports = (sequelize, DataTypes) => {
   UserSkills.init(
     {
       userId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
         allowNull: false,
         references: { model: 'Users', key: 'id' },
         onDelete: 'CASCADE',
       },
       skillId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
         allowNull: false,
         references: { model: 'Skills', key: 'id' },
         onDelete: 'CASCADE',
