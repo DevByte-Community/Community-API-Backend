@@ -11,6 +11,7 @@ const cors = require('cors');
 const routes = require('./routes'); // auto-loads index.js from routes folder
 // const { authorize } = require('./middleware/authMiddleware');
 const sequelize = require('./db');
+const dbRoutes = require('./routes/dbRoutes');
 
 const app = express();
 
@@ -29,14 +30,7 @@ app.get('/', (req, res) => {
 });
 
 // Test DB route
-app.get('/api/v1/test-db', async (req, res) => {
-  try {
-    const [result] = await sequelize.query('SELECT NOW()');
-    res.json({ connected: true, time: result[0] });
-  } catch (err) {
-    res.status(500).json({ connected: false, error: err.message });
-  }
-});
+app.get('/api/v1/', dbRoutes);
 
 // 404 handler for undefined routes
 app.use((req, res, next) => {

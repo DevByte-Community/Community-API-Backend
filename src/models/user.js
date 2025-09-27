@@ -10,7 +10,7 @@ const User = sequelize.define(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
-    name: {
+    fullname: {   // renamed from name → fullname
       type: DataTypes.STRING,
       allowNull: false,
     },
@@ -24,9 +24,10 @@ const User = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    roles: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
-      defaultValue: ['USER'],
+    role: {   // changed from roles ARRAY → single ENUM role
+      type: DataTypes.ENUM('USER', 'ADMIN'),
+      allowNull: false,
+      defaultValue: 'USER',
     },
   },
   { timestamps: true }
