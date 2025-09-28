@@ -26,7 +26,7 @@ class AuthService {
       const user = await User.create({
         fullname,
         email,
-        password_hash,
+        password: password_hash,
         roles: ['USER'],
       });
 

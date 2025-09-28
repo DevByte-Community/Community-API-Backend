@@ -1,7 +1,7 @@
 const request = require('supertest');
-const app = require('../src/app'); // adjust path if needed
+const app = require('../src/app'); // Express app
 const { sequelize } = require('../src/models'); // ensure DB connection
-const User = require('../src/models/user');
+// const User = require('../src/models/user');
 
 describe('POST /api/v1/auth/signup', () => {
   beforeAll(async () => {
