@@ -12,15 +12,17 @@ const sequelize = new Sequelize(
     logging: false, // disable noisy SQL logs
   }
 );
-
+ 
 // Test the connection
-(async () => {
-  try {
-    await sequelize.authenticate();
-    console.log('✅ Connected to PostgreSQL via Sequelize');
-  } catch (err) {
-    console.error('❌ DB connection error:', err);
-  }
-})();
+if (process.env.NODE_ENV !== 'test') {
+  (async () => {
+    try {
+      await sequelize.authenticate();
+      console.log("✅ Connected to PostgreSQL via Sequelize");
+    } catch (err) {
+      console.error("❌ Unable to connect:", err);
+    }
+  })();
+}
 
 module.exports = sequelize;

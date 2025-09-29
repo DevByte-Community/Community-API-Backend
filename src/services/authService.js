@@ -1,7 +1,7 @@
 // services/authService.js
 const bcrypt = require('bcrypt');
 const { UniqueConstraintError } = require('sequelize');
-const User = require('../models/user');
+const User = require('../models/users.model');
 const { generateTokens } = require('../utils/jwt');
 const logger = require('../utils/logger');
 
@@ -9,7 +9,7 @@ const logger = require('../utils/logger');
 const SALT_ROUNDS = 10;
 
 class AuthService {
-  async signup({ fullname, email, password }) {
+  // async signup({ fullname, email, password }) {
     // Here i check if email already exists (fast check)
     // const existingUser = await User.findOne({ where: { email } });
     // if (existingUser) {
@@ -17,6 +17,30 @@ class AuthService {
     //   error.statusCode = 409;
     //   throw error;
     // }
+
+
+     async signup({ fullname, email, password }) {
+    // ---- Here i VALIDATES THE REQUEST EVEN BEFORE IT REACHES MY SERVICE ----
+    if (!fullname || fullname.trim() === '') {
+      throw new Error('Fullname is required');
+    }
+
+    if (!email || email.trim() === '') {
+      throw new Error('Email is required');
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new Error('Invalid email format');
+    }
+
+    if (!password || password.trim() === '') {
+      throw new Error('Password is required');
+    }
+
+    if (password.length < 6) {
+      throw new Error('Password must be at least 6 characters');
+    }
 
     // Here i hash password
     const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
@@ -53,8 +77,9 @@ class AuthService {
         throw error;
       }
       logger.error(`Signup failed for email=${email} - ${err.message}`);
-      const status = err.statusCode || 500;
-      throw new Error(err.message).withStatus(status) // Here i rethrow other errors
+      const error = new Error(err.message);
+      error.statusCode = 500;   // or use your "status" variable
+      throw error;
     }
   }
 }

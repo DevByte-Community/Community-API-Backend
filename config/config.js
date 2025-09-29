@@ -1,3 +1,5 @@
+const { logger } = require('sequelize/lib/utils/logger');
+
 require('dotenv').config();
 
 module.exports = {
@@ -16,6 +18,7 @@ module.exports = {
     host: process.env.POSTGRES_HOST,
     port: process.env.POSTGRES_PORT,
     dialect: 'postgres',
+    logger: false,
   },
   production: {
     username: process.env.POSTGRES_USER,
@@ -25,7 +28,7 @@ module.exports = {
     port: process.env.POSTGRES_PORT,
     dialect: 'postgres',
   },
-};
+}; 
 
 // require('dotenv').config();
 

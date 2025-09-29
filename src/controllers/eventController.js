@@ -8,11 +8,16 @@
  */
 
 // GET all events
-export const getEvents = (req, res) => {
+ const getEvents = (req, res) => {
   res.json({ message: 'List of events (to be implemented)' });
 };
 
 // POST new event
-export const createEvent = (req, res) => {
+ const createEvent = (req, res) => {
   res.json({ message: 'Event creation (to be implemented)' });
+};
+
+module.exports = {
+  getEvents,
+  createEvent
 };

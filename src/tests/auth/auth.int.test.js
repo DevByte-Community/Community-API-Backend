@@ -1,7 +1,8 @@
+require('dotenv').config({ path: '.env.test' }); // Load test environment variables
+
 const request = require('supertest');
-const app = require('../src/app'); // Express app
-const { sequelize } = require('../src/models'); // ensure DB connection
-// const User = require('../src/models/user');
+const app = require('../../app'); // Express app
+const { sequelize } = require('../../models');
 
 describe('POST /api/v1/auth/signup', () => {
   beforeAll(async () => {
@@ -11,6 +12,7 @@ describe('POST /api/v1/auth/signup', () => {
   afterAll(async () => {
     await sequelize.close();
   });
+
 
   it('should register a new user successfully', async () => {
     const res = await request(app).post('/api/v1/auth/signup').send({
