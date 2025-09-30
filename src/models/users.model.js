@@ -3,13 +3,9 @@ const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
-    static associate(models) {
-      // A user can have many skills
-      User.belongsToMany(models.Skill, {
-        through: 'UserSkills',
-        foreignKey: 'userId',
-        otherKey: 'skillId',
-      });
+    static associate(_models) {
+      // define associations here if needed later
+      // e.g., User.belongsToMany(models.Skill, { through: 'UserSkills', foreignKey: 'userId' });
     }
   }
 
@@ -17,8 +13,8 @@ module.exports = (sequelize, DataTypes) => {
     {
       id: {
         type: DataTypes.UUID,
-        primaryKey: true,
         defaultValue: DataTypes.UUIDV4,
+        primaryKey: true,
       },
       fullname: {
         type: DataTypes.STRING,
@@ -26,20 +22,18 @@ module.exports = (sequelize, DataTypes) => {
       },
       email: {
         type: DataTypes.STRING,
-        allowNull: false,
         unique: true,
-        validate: {
-          isEmail: true,
-        },
+        allowNull: false,
+        validate: { isEmail: true },
       },
       password: {
         type: DataTypes.STRING,
         allowNull: false,
       },
       role: {
-        type: DataTypes.ENUM('user', 'admin'),
+        type: DataTypes.ENUM('USER', 'ADMIN'),
         allowNull: false,
-        defaultValue: 'user',
+        defaultValue: 'USER',
       },
     },
     {

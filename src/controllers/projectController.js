@@ -8,11 +8,16 @@
  */
 
 // GET all projects
-export const getProjects = (req, res) => {
+ const getProjects = (req, res) => {
   res.json({ message: 'List of projects (to be implemented)' });
 };
 
 // POST new project
-export const createProject = (req, res) => {
+ const createProject = (req, res) => {
   res.json({ message: 'Project creation (to be implemented)' });
+};
+
+module.exports = {
+  getProjects,
+  createProject
 };
