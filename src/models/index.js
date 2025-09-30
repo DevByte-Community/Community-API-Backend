@@ -15,7 +15,8 @@ let sequelize;
 if (config.use_env_variable) {
   sequelize = new Sequelize(process.env[config.use_env_variable], config);
 } else {
-  sequelize = new Sequelize(config.database, config.username, config.password, {  // Pass config object directly
+  sequelize = new Sequelize(config.database, config.username, config.password, {
+    // Pass config object directly
     host: config.host,
     port: config.port,
     dialect: config.dialect,
@@ -32,8 +33,14 @@ fs.readdirSync(__dirname)
     );
   })
   .forEach((file) => {
-    const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
-    db[model.name] = model;
+    const requiredModule = require(path.join(__dirname, file));
+    if (typeof requiredModule !== 'function') {
+      return; // skip files not exporting a factory
+    }
+    const model = requiredModule(sequelize, Sequelize.DataTypes);
+    if (model && model.name) {
+      db[model.name] = model;
+    }
   });
 
 Object.keys(db).forEach((modelName) => {

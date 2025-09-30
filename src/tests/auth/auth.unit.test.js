@@ -1,11 +1,14 @@
 // tests/auth.unit.test.js
+jest.mock('../../models', () => ({ User: { create: jest.fn() } }));
+jest.mock('bcrypt');
+jest.mock('../../utils/jwt', () => ({
+  generateTokens: () => ({ accessToken: 'a', refreshToken: 'r' }),
+}));
+
 const bcrypt = require('bcrypt');
 const { UniqueConstraintError } = require('sequelize');
 const AuthService = require('../../services/authService');
-const User = require('../../models/users.model');
-
-jest.mock('../../models/users.model'); // Here is my mock Sequelize model
-jest.mock('bcrypt');
+const { User } = require('../../models');
 
 describe('AuthService.signup (unit)', () => {
   beforeEach(() => {

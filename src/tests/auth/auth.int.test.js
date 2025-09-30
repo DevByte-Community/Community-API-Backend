@@ -1,18 +1,43 @@
-require('dotenv').config({ path: '.env.test' }); // Load test environment variables
-
 const request = require('supertest');
-const app = require('../../app'); // Express app
-const { sequelize } = require('../../models');
+const { GenericContainer } = require('testcontainers');
 
-describe('POST /api/v1/auth/signup', () => {
+// Increase Jest timeout for container startup
+jest.setTimeout(60000);
+
+let container;
+let app;
+let db;
+
+describe('POST /api/v1/auth/signup (Testcontainers)', () => {
   beforeAll(async () => {
-    await sequelize.sync({ force: true }); // reset DB for tests
+    container = await new GenericContainer('postgres:14')
+      .withEnvironment({
+        POSTGRES_USER: 'test_user',
+        POSTGRES_PASSWORD: 'test_password',
+        POSTGRES_DB: 'test_db',
+      })
+      .withExposedPorts(5432)
+      .start();
+
+    const host = container.getHost();
+    const port = container.getMappedPort(5432);
+
+    process.env.NODE_ENV = 'test';
+    process.env.POSTGRES_USER = 'test_user';
+    process.env.POSTGRES_PASSWORD = 'test_password';
+    process.env.POSTGRES_DB = 'test_db';
+    process.env.POSTGRES_HOST = host;
+    process.env.POSTGRES_PORT = String(port);
+
+    db = require('../../models');
+    await db.sequelize.sync({ force: true });
+    app = require('../../app');
   });
 
   afterAll(async () => {
-    await sequelize.close();
+    if (db && db.sequelize) await db.sequelize.close();
+    if (container) await container.stop();
   });
-
 
   it('should register a new user successfully', async () => {
     const res = await request(app).post('/api/v1/auth/signup').send({
@@ -28,18 +53,16 @@ describe('POST /api/v1/auth/signup', () => {
     expect(res.body).toHaveProperty('refresh_token');
     expect(res.body.user).toHaveProperty('id');
     expect(res.body.user.email).toBe('test@example.com');
-    expect(res.body.user).not.toHaveProperty('password_hash'); // security
+    expect(res.body.user).not.toHaveProperty('password_hash');
   });
 
   it('should reject duplicate email registration', async () => {
-    // first signup
     await request(app).post('/api/v1/auth/signup').send({
       fullname: 'Test User',
       email: 'duplicate@example.com',
       password: 'mypassword123',
     });
 
-    // second signup with same email
     const res = await request(app).post('/api/v1/auth/signup').send({
       fullname: 'Another User',
       email: 'duplicate@example.com',
@@ -65,7 +88,7 @@ describe('POST /api/v1/auth/signup', () => {
     const res = await request(app).post('/api/v1/auth/signup').send({
       fullname: 'Short Password User',
       email: 'short@example.com',
-      password: '123', // too short
+      password: '123',
     });
 
     expect(res.statusCode).toBe(400);

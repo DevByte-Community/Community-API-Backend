@@ -1,25 +1,14 @@
 // services/authService.js
 const bcrypt = require('bcrypt');
 const { UniqueConstraintError } = require('sequelize');
-const User = require('../models/users.model');
+const { User } = require('../models');
 const { generateTokens } = require('../utils/jwt');
 const logger = require('../utils/logger');
-
 
 const SALT_ROUNDS = 10;
 
 class AuthService {
-  // async signup({ fullname, email, password }) {
-    // Here i check if email already exists (fast check)
-    // const existingUser = await User.findOne({ where: { email } });
-    // if (existingUser) {
-    //   const error = new Error('Email already registered.');
-    //   error.statusCode = 409;
-    //   throw error;
-    // }
-
-
-     async signup({ fullname, email, password }) {
+  async signup({ fullname, email, password }) {
     // ---- Here i VALIDATES THE REQUEST EVEN BEFORE IT REACHES MY SERVICE ----
     if (!fullname || fullname.trim() === '') {
       throw new Error('Fullname is required');
@@ -78,7 +67,7 @@ class AuthService {
       }
       logger.error(`Signup failed for email=${email} - ${err.message}`);
       const error = new Error(err.message);
-      error.statusCode = 500;   // or use your "status" variable
+      error.statusCode = 500; // or use your "status" variable
       throw error;
     }
   }
