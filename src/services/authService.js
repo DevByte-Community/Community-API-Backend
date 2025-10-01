@@ -71,6 +71,72 @@ class AuthService {
       throw error;
     }
   }
+
+  async signin({ email, password }) {
+    // ---- Here i VALIDATES THE REQUEST EVEN BEFORE IT REACHES MY SERVICE ----
+    if (!email || email.trim() === '') {
+      throw new Error('Email is required');
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new Error('Invalid email format');
+    }
+
+    if (!password || password.trim() === '') {
+      throw new Error('Password is required');
+    }
+
+    if (password.length < 6) {
+      throw new Error('Password must be at least 6 characters');
+    }
+
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      const error = new Error('Invalid credentials.');
+      error.statusCode = 401;
+      throw error;
+    }
+
+
+
+    // Here i compare password
+        const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      const error = new Error('Invalid credentials.');
+      error.statusCode = 401;
+      throw error;
+    }
+
+    try {
+      // Here i generate JWT & refresh token
+      const { accessToken, refreshToken } = generateTokens(user);
+
+      return {
+        message: 'User signed in successfully',
+        success: true,
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        user: {
+          id: user.id,
+          fullname: user.fullname,
+          email: user.email,
+          roles: user.roles,
+          created_at: user.createdAt,
+        },
+      };
+    } catch (err) {
+      if (err instanceof UniqueConstraintError) {
+        const error = new Error('Email already registered.');
+        error.statusCode = 409;
+        throw error;
+      }
+      logger.error(`Signup failed for email=${email} - ${err.message}`);
+      const error = new Error(err.message);
+      error.statusCode = 500; // or use your "status" variable
+      throw error;
+    }
+  }
 }
 
 module.exports = new AuthService();

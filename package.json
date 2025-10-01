@@ -7,6 +7,7 @@
     "test": "jest",
     "start:prod": "node src/server.js",
     "start:dev": "nodemon",
+    "dev:test": "cross-env NODE_ENV=test nodemon src/server.js",
     "lint": "eslint .",
     "lint-staged": "lint-staged",
     "precommit": "npm run -s lint-staged && npm run -s test",
@@ -16,7 +17,8 @@
     "prepare": "husky install",
     "migrate": "sequelize-cli db:migrate",
     "migrate:undo": "sequelize-cli db:migrate:undo",
-    "migration:generate": "sequelize-cli migration:generate --name"
+    "migration:generate": "sequelize-cli migration:generate --name",
+    "migrate:test": "cross-env NODE_ENV=test sequelize-cli db:migrate"
   },
   "lint-staged": {
     "*.js": [
@@ -42,6 +44,7 @@
     "sequelize-cli": "^6.6.3"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",

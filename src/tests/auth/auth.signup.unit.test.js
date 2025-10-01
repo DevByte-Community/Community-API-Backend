@@ -1,4 +1,4 @@
-// tests/auth.unit.test.js
+// tests/auth.signup.unit.test.js
 jest.mock('../../models', () => ({ User: { create: jest.fn() } }));
 jest.mock('bcrypt');
 jest.mock('../../utils/jwt', () => ({

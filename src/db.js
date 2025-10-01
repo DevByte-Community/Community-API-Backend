@@ -1,5 +1,10 @@
-require('dotenv').config();
-const { Sequelize } = require('sequelize');
+const path = require("path");
+const dotenv = require("dotenv");
+const { Sequelize } = require("sequelize");
+
+// Load different env files depending on NODE_ENV
+const envFile = process.env.NODE_ENV === "test" ? ".env.test" : ".env";
+dotenv.config({ path: path.resolve(process.cwd(), envFile) });
 
 const sequelize = new Sequelize(
   process.env.POSTGRES_DB,
@@ -8,13 +13,13 @@ const sequelize = new Sequelize(
   {
     host: process.env.POSTGRES_HOST,
     port: process.env.POSTGRES_PORT,
-    dialect: 'postgres',
+    dialect: "postgres",
     logging: false, // disable noisy SQL logs
   }
 );
- 
+
 // Test the connection
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== "test") {
   (async () => {
     try {
       await sequelize.authenticate();
