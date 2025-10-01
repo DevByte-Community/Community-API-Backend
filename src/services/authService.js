@@ -4,7 +4,7 @@ const { UniqueConstraintError } = require('sequelize');
 const { User } = require('../models');
 const { generateTokens } = require('../utils/jwt');
 const logger = require('../utils/logger');
-
+const redisClient = require("../config/redis.js"); // setup redis client
 const SALT_ROUNDS = 10;
 
 class AuthService {
@@ -71,6 +71,17 @@ class AuthService {
       throw error;
     }
   }
+
+async logoutUser(refreshToken) {
+  if (!refreshToken) {
+    throw new Error('No refresh token provided');
+  }
+
+  // Blacklist refresh token in Redis with expiry of 7d
+  await redisClient.setEx(`bl_rt_${refreshToken}`, 604800, 'blacklisted');
+
+  return { success: true, message: 'Logged out successfully' };
+}
 }
 
 module.exports = new AuthService();

@@ -2,7 +2,6 @@
 const Joi = require('joi');
 const authService = require('../services/authService');
 const logger = require('../utils/logger');
-
 const signupSchema = Joi.object({
   fullname: Joi.string().min(2).required().messages({
     'string.empty': 'FullName is required',
@@ -41,6 +40,34 @@ class AuthController {
       return res.status(status).json({ success: false, message: err.message });
     }
   }
+
+  async logout(req, res) {
+  try {
+    const userId = req.user.id; // set by auth middleware
+    const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Refresh token is required"
+      });
+    }
+
+    const result = await authService.logoutUser(refreshToken);
+
+    // Clear cookies (optional, if tokens stored in cookies)
+    res.clearCookie("refreshToken", { httpOnly: true, secure: true });
+
+    console.log(`[LOGOUT] userId=${userId} at ${new Date().toISOString()}`);
+
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Logout failed"
+    });
+  }
+}
 }
 
 module.exports = new AuthController();
