@@ -8,11 +8,16 @@
  */
 
 // GET all blogs
-export const getBlogs = (req, res) => {
+ const getBlogs = (req, res) => {
   res.json({ message: 'List of blogs (to be implemented)' });
 };
 
 // POST new blog
-export const createBlog = (req, res) => {
+ const createBlog = (req, res) => {
   res.json({ message: 'Blog creation (to be implemented)' });
+};
+
+module.exports = {
+  getBlogs,
+  createBlog
 };

@@ -1,21 +1,24 @@
-// src/middleware/authMiddleware.js
-import jwt from "jsonwebtoken";
-import { User } from "../models/user.js";
+// middleware/authMiddleware.js
+const passport = require('passport');
+const { Strategy: JwtStrategy, ExtractJwt } = require('passport-jwt');
 
-export async function authenticate(req, res, next) {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+const User = require('../models/user');
 
-  if (!token) {
-    return res.status(401).json({ success: false, message: "Unauthorized" });
-  }
+const opts = {
+  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+  secretOrKey: process.env.ACCESS_TOKEN_SECRET,
+};
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findByPk(decoded.id);
-    if (!req.user) throw new Error("User not found");
-    next();
-  } catch (err) {
-    return res.status(403).json({ success: false, message: "Invalid token" });
-  }
-}
+passport.use(
+  new JwtStrategy(opts, async (jwt_payload, done) => {
+    try {
+      const user = await User.findByPk(jwt_payload.id);
+      if (user) return done(null, user);
+      return done(null, false);
+    } catch (err) {
+      return done(err, false);
+    }
+  })
+);
+
+module.exports = passport;

@@ -8,11 +8,18 @@
  */
 
 // GET all jobs
-export const getJobs = (req, res) => {
+
+ const getJobs = (req, res) => {
   res.json({ message: 'List of jobs (to be implemented)' });
 };
 
 // POST new job
-export const createJob = (req, res) => {
+
+ const createJob = (req, res) => {
   res.json({ message: 'Job posting creation (to be implemented)' });
+};
+
+module.exports = {
+  getJobs,
+  createJob
 };
