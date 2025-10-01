@@ -38,6 +38,7 @@
     "passport-jwt": "^4.0.1",
     "pg": "^8.16.3",
     "pg-hstore": "^2.3.4",
+    "redis": "^5.8.2",
     "sequelize": "^6.37.7",
     "sequelize-cli": "^6.6.3"
   },
