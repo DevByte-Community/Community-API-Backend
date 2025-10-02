@@ -16,7 +16,6 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
         POSTGRES_USER: 'test_user',
         POSTGRES_PASSWORD: 'test_password',
         POSTGRES_DB: 'test_db',
-        POSTGRES_PORT: '5432',
       })
       .withExposedPorts(5432)
       .start();
