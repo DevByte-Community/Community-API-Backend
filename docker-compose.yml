@@ -1,7 +1,7 @@
 version: "3.9"
 
 services:
-  postgres_dev:
+  postgres:
     image: postgres:18-alpine
     container_name: postgres
     environment:
@@ -11,7 +11,7 @@ services:
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - community-network
 
@@ -24,14 +24,14 @@ services:
     ports:
       - "${PGADMIN_PORT}:80"
     depends_on:
-      - postgres_dev
+      - postgres
     networks:
       - community-network
     extra_hosts:
       - "localhost:127.0.0.1"
 
 volumes:
-  postgres_dev_data:
+  postgres_data:
 
 networks:
   community-network:
