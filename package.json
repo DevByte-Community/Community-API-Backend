@@ -17,8 +17,7 @@
     "prepare": "husky install",
     "migrate": "sequelize-cli db:migrate",
     "migrate:undo": "sequelize-cli db:migrate:undo",
-    "migration:generate": "sequelize-cli migration:generate --name",
-    "migrate:test": "cross-env NODE_ENV=test sequelize-cli db:migrate"
+    "migration:generate": "sequelize-cli migration:generate --name"
   },
   "lint-staged": {
     "*.js": [
