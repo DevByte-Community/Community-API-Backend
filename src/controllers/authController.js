@@ -1,17 +1,10 @@
 // controllers/authController.js
 const authService = require('../services/authService');
-const logger = require('../utils/logger');
+const createLogger = require('../utils/logger');
 const Validator = require('../utils/index');
 const { signupSchema, signinSchema } = require('../utils/validator');
 
-const MODULE = 'AUTH_CONTROLLER';
-
-// Helper to prefix logs with timestamp and module name
-const logWithMeta = (level, message) => {
-  const timestamp = new Date().toISOString();
-  logger[level](`${timestamp}:[${MODULE}]: ${message}`);
-};
-
+const logger = createLogger('MODULE:AUTH_CONTROLLER');
 
 class AuthController {
   async signup(req, res) {
@@ -21,9 +14,7 @@ class AuthController {
 
       const result = await authService.signup(value);
 
-      logger.info(`Signup success for email=${value.email}`);
-      logWithMeta('info', `Signup success for email=${value.email}`);
-
+       logger.info(`Signup success for email=${value.email}`);
       return res.status(201).json(result);
     } catch (err) {
       logger.error(`Signup failed for email=${req.body.email} - ${err.message}`);
@@ -39,7 +30,6 @@ class AuthController {
       const result = await authService.signin(value);
 
       logger.info(`Signin success for email=${value.email}`);
-      logWithMeta('info', `Signin success for email=${value.email}`);
 
       return res.status(200).json(result);
     } catch (err) {

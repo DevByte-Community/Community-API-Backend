@@ -3,7 +3,9 @@ const bcrypt = require('bcrypt');
 const { UniqueConstraintError } = require('sequelize');
 const { User } = require('../models');
 const { generateTokens } = require('../utils/jwt');
-const logger = require('../utils/logger');
+const createLogger = require('../utils/logger');
+
+const logger = createLogger('MODULE:AUTH_SERVICE');
 
 const SALT_ROUNDS = 10;
 
