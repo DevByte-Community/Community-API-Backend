@@ -126,14 +126,9 @@ class AuthService {
         },
       };
     } catch (err) {
-      if (err instanceof UniqueConstraintError) {
-        const error = new Error('Email already registered.');
-        error.statusCode = 409;
-        throw error;
-      }
-      logger.error(`Signup failed for email=${email} - ${err.message}`);
+      logger.error(`Signin failed for email=${email} - ${err.message}`);
       const error = new Error(err.message);
-      error.statusCode = 500; // or use your "status" variable
+      error.statusCode = 500; 
       throw error;
     }
   }
