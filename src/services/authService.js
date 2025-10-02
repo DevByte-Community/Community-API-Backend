@@ -9,28 +9,6 @@ const SALT_ROUNDS = 10;
 
 class AuthService {
   async signup({ fullname, email, password }) {
-    // ---- Here i VALIDATES THE REQUEST EVEN BEFORE IT REACHES MY SERVICE ----
-    if (!fullname || fullname.trim() === '') {
-      throw new Error('Fullname is required');
-    }
-
-    if (!email || email.trim() === '') {
-      throw new Error('Email is required');
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      throw new Error('Invalid email format');
-    }
-
-    if (!password || password.trim() === '') {
-      throw new Error('Password is required');
-    }
-
-    if (password.length < 6) {
-      throw new Error('Password must be at least 6 characters');
-    }
-
     // Here i hash password
     const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
 
@@ -73,24 +51,7 @@ class AuthService {
   }
 
   async signin({ email, password }) {
-    // ---- Here i VALIDATES THE REQUEST EVEN BEFORE IT REACHES MY SERVICE ----
-    if (!email || email.trim() === '') {
-      throw new Error('Email is required');
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      throw new Error('Invalid email format');
-    }
-
-    if (!password || password.trim() === '') {
-      throw new Error('Password is required');
-    }
-
-    if (password.length < 6) {
-      throw new Error('Password must be at least 6 characters');
-    }
-
+    // Here i find user by email
     const user = await User.findOne({ where: { email } });
     if (!user) {
       const error = new Error('Invalid credentials.');
