@@ -1,15 +1,17 @@
+version: "3.9"
+
 services:
-  postgres:
+  postgres_container:
     image: postgres:18-alpine
     container_name: postgres_container
-    ports:
-      - '${POSTGRES_PORT}:5432'
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_container_data:/var/lib/postgresql/data
     networks:
       - community-network
 
@@ -20,16 +22,16 @@ services:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
     ports:
-      - '${PGADMIN_PORT}:80'
+      - "${PGADMIN_PORT}:80"
     depends_on:
-      - postgres
+      - postgres_container
     networks:
       - community-network
     extra_hosts:
       - "localhost:127.0.0.1"
 
 volumes:
-  postgres_data:
+  postgres_container_data:
 
 networks:
   community-network:
