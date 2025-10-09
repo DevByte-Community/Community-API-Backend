@@ -9,6 +9,8 @@ const logger = createLogger('MODULE:AUTH_SERVICE');
 
 const SALT_ROUNDS = 10;
 
+
+
 class AuthService {
   async signup({ fullname, email, password }) {
     // Here i hash password
@@ -61,8 +63,6 @@ class AuthService {
       throw error;
     }
 
-
-
     // Here i compare password
         const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
@@ -95,6 +95,28 @@ class AuthService {
       throw error;
     }
   }
+
+  
+// update password (hash then update)
+async updatePasswordByEmail(email, newPassword) {
+  const user = await User.findOne({ where: { email } });
+  if (!user) {
+    const error = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  const password_hash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  user.password = password_hash;
+  await user.save();
+  logger.info(`Password updated for ${email}`);
+  return true;
+}
+
+// find user by email (used by forgot-password)
+async findUserByEmail(email) {
+  return User.findOne({ where: { email } });
+}
+
 }
 
 module.exports = new AuthService();
