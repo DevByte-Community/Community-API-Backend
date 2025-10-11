@@ -11,7 +11,7 @@
   },
   "rules": {
     "no-console": ["warn", { "allow": ["error", "log"] }],
-    "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "no-unused-vars": ["error", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_" }],
     "no-process-exit": "error",
     "no-var": "error",
     "prefer-const": "error"

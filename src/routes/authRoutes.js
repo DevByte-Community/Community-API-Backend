@@ -3,7 +3,6 @@ const authController = require('../controllers/authController');
 
 const router = express.Router();
 
-
 /**
  * @swagger
  * /api/v1/auth/signup:
@@ -40,7 +39,7 @@ router.post('/signup', authController.signup);
 
 /**
  * @swagger
- * /api/v1/auth/login:
+ * /api/v1/auth/signin:
  *   post:
  *     summary: Login user and get JWT token
  *     tags: [Authentication]
@@ -112,9 +111,6 @@ router.post('/forgot-password', authController.forgotPassword);
  *               otp:
  *                 type: string
  *                 example: 123456
- *               new_password:
- *                 type: string
- *                 example: mypassword1234
  *     responses:
  *       200:
  *         description: Password reset successful
@@ -124,6 +120,46 @@ router.post('/forgot-password', authController.forgotPassword);
  *         description: Internal server error
  */
 router.post('/verify-otp', authController.verifyOtp);
+
+/**
+ * @swagger
+ * /api/v1/auth/reset-password:
+ *   post:
+ *     summary: Reset password for authenticated user
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - current_password
+ *               - new_password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: john@example.com
+ *               current_password:
+ *                 type: string
+ *                 example: oldpassword123
+ *               new_password:
+ *                 type: string
+ *                 example: newpassword456
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ *       400:
+ *         description: Bad request (validation errors)
+ *       401:
+ *         description: Current password is incorrect
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/reset-password', authController.resetPassword);
 
 // router.post('/refresh-token', authController.refreshToken);
 

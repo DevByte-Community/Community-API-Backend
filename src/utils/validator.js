@@ -50,9 +50,20 @@ const verifyOtpSchema = Joi.object({
       'string.empty': 'OTP is required',
       'string.pattern.base': 'OTP must be a 6-digit number',
     }),
+});
+
+//Here i define validation schemas for user input on Reset Password (authenticated)
+const resetPasswordSchema = Joi.object({
+  email: Joi.string().email().required().messages({
+    'string.empty': 'Email is required',
+    'string.email': 'Email must be a valid email address',
+  }),
+  current_password: Joi.string().required().messages({
+    'string.empty': 'Current password is required',
+  }),
   new_password: Joi.string().min(8).required().messages({
     'string.empty': 'New password is required',
-    'string.min': 'Password must be at least 8 characters long',
+    'string.min': 'New password must be at least 8 characters long',
   }),
 });
 
@@ -61,4 +72,5 @@ module.exports = {
   signinSchema,
   forgotPasswordSchema,
   verifyOtpSchema,
+  resetPasswordSchema,
 };

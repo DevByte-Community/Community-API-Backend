@@ -8,22 +8,6 @@ const logger = createLogger('EMAIL');
 // Prevent IPv6 timeout issues
 dns.setDefaultResultOrder('ipv4first');
 
-// Mock mail sending in test mode
-if (process.env.NODE_ENV === 'test') {
-  logger.info('[TEST MODE] EmailService running in mock mode — no real emails will be sent.');
-
-  async function sendOtpEmail(to, otp) {
-    logger.info(`[TEST MODE] Mock OTP email sent to ${to} with OTP: ${otp}`);
-    // Simulate a successful send
-    return { accepted: [to], response: '250 OK (mock)' };
-  }
-
-  module.exports = { sendOtpEmail };
-  return;
-}
-
-// ---- Production / Dev mode ----
-
 // Configure Gmail Transporter
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -43,7 +27,7 @@ transporter.verify((error, success) => {
   if (error) {
     logger.error(`❌ Gmail SMTP connection failed: ${error.message}`);
   } else {
-    logger.info('✅ Gmail SMTP connection successful and ready to send mail');
+    logger.info(`✅ Gmail SMTP connection successful and ready to send mail: ${success}`);
   }
 });
 

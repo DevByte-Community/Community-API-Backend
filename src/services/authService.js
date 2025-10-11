@@ -9,8 +9,6 @@ const logger = createLogger('MODULE:AUTH_SERVICE');
 
 const SALT_ROUNDS = 10;
 
-
-
 class AuthService {
   async signup({ fullname, email, password }) {
     // Here i hash password
@@ -64,7 +62,7 @@ class AuthService {
     }
 
     // Here i compare password
-        const passwordMatch = await bcrypt.compare(password, user.password);
+    const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
       const error = new Error('Invalid credentials.');
       error.statusCode = 401;
@@ -91,32 +89,56 @@ class AuthService {
     } catch (err) {
       logger.error(`Signin failed for email=${email} - ${err.message}`);
       const error = new Error(err.message);
-      error.statusCode = 500; 
+      error.statusCode = 500;
       throw error;
     }
   }
 
-  
-// update password (hash then update)
-async updatePasswordByEmail(email, newPassword) {
-  const user = await User.findOne({ where: { email } });
-  if (!user) {
-    const error = new Error('User not found');
-    error.statusCode = 404;
-    throw error;
+  // update password (hash then update)
+  async updatePasswordByEmail(email, newPassword) {
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      const error = new Error('User not found');
+      error.statusCode = 404;
+      throw error;
+    }
+    const password_hash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    user.password = password_hash;
+    await user.save();
+    logger.info(`Password updated for ${email}`);
+    return true;
   }
-  const password_hash = await bcrypt.hash(newPassword, SALT_ROUNDS);
-  user.password = password_hash;
-  await user.save();
-  logger.info(`Password updated for ${email}`);
-  return true;
-}
 
-// find user by email (used by forgot-password)
-async findUserByEmail(email) {
-  return User.findOne({ where: { email } });
-}
+  // find user by email (used by forgot-password)
+  async findUserByEmail(email) {
+    return User.findOne({ where: { email } });
+  }
 
+  // reset password (requires current password verification)
+  async resetPassword({ email, currentPassword, newPassword }) {
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      logger.info('user not found using email: ', email);
+      const error = new Error('User not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // Verify current password
+    const passwordMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!passwordMatch) {
+      const error = new Error('Current password is incorrect');
+      error.statusCode = 401;
+      throw error;
+    }
+
+    // Hash and update new password
+    const password_hash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    user.password = password_hash;
+    await user.save();
+    logger.info(`Password reset for ${email}`);
+    return true;
+  }
 }
 
 module.exports = new AuthService();
