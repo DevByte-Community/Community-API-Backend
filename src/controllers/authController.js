@@ -105,7 +105,7 @@ class AuthController {
       // remove OTP
       await deleteOtpForEmail(email);
 
-      logger.info(`Password reset for ${email}`);
+      logger.info(`Otp code verified successfully for ${email}`);
       return res.status(200).json({ success: true, message: 'Verified otp successfully' });
     } catch (err) {
       // do not log password or OTP

@@ -1,13 +1,24 @@
 // src/services/otpService.js
 const { client } = require('../utils/redisClient');
 const createLogger = require('../utils/logger');
+const crypto = require('crypto');
 const logger = createLogger('OTP_SERVICE');
 
 const OTP_TTL_SECONDS = 10 * 60; // 10 minutes
+const OTP_LENGTH = 6;
 
 function generateOtp() {
   logger.info('generate opt code operation on');
-  return Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Generate a cryptographically secure random number
+  const min = Math.pow(10, OTP_LENGTH - 1);
+  const max = Math.pow(10, OTP_LENGTH) - 1;
+  const otp = crypto
+    .randomInt(min, max + 1)
+    .toString()
+    .padStart(OTP_LENGTH, '0');
+
+  return otp;
 }
 
 async function saveOtpForEmail(email, otp) {
