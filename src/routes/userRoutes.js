@@ -1,6 +1,6 @@
 const express = require('express');
 const { updateProfilePicture } = require('../controllers/userController');
-const passport = require('../middleware/authMiddleware');
+const { authenticateJWT } = require('../middleware/authMiddleware');
 const { handleMulterUpload } = require('../middleware/uploadMiddleware');
 
 const router = express.Router();
@@ -109,7 +109,33 @@ const router = express.Router();
  *                   example: false
  *                 message:
  *                   type: string
- *                   example: Invalid token
+ *                   example: Authentication required. Please provide a valid JWT token in the Authorization header.
+ *             examples:
+ *               noToken:
+ *                 summary: No token provided
+ *                 value:
+ *                   success: false
+ *                   message: Authentication required. Please provide a valid JWT token in the Authorization header.
+ *               invalidFormat:
+ *                 summary: Invalid token format
+ *                 value:
+ *                   success: false
+ *                   message: Invalid authentication format. Use Authorization Bearer <token>
+ *               tokenExpired:
+ *                 summary: Token expired
+ *                 value:
+ *                   success: false
+ *                   message: Token has expired. Please login again.
+ *               invalidToken:
+ *                 summary: Invalid token
+ *                 value:
+ *                   success: false
+ *                   message: Invalid token. Please provide a valid JWT token.
+ *               userNotFound:
+ *                 summary: User no longer exists
+ *                 value:
+ *                   success: false
+ *                   message: User associated with this token no longer exists.
  *       404:
  *         description: User not found
  *         content:
@@ -139,7 +165,7 @@ const router = express.Router();
  */
 router.patch(
   '/profile/picture',
-  passport.authenticate('jwt', { session: false }),
+  authenticateJWT,
   handleMulterUpload('profile_picture'),
   updateProfilePicture
 );

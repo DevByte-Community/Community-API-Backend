@@ -74,18 +74,24 @@ const handleJWTError = (err) => {
   if (err.name === 'JsonWebTokenError') {
     return {
       statusCode: 401,
-      message: 'Invalid token',
+      message: 'Invalid token. Please provide a valid JWT token.',
     };
   }
   if (err.name === 'TokenExpiredError') {
     return {
       statusCode: 401,
-      message: 'Token expired',
+      message: 'Token has expired. Please login again.',
+    };
+  }
+  if (err.name === 'NotBeforeError') {
+    return {
+      statusCode: 401,
+      message: 'Token not active yet.',
     };
   }
   return {
     statusCode: 401,
-    message: 'Authentication error',
+    message: 'Authentication error. Please provide a valid token.',
   };
 };
 
@@ -119,11 +125,16 @@ const errorHandler = (err, req, res, _next) => {
   } else if (err.name && err.name.includes('Sequelize')) {
     const sequelizeError = handleSequelizeError(err);
     error = { ...error, ...sequelizeError };
-  } else if (err.name && (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError')) {
+  } else if (
+    err.name &&
+    (err.name === 'JsonWebTokenError' ||
+      err.name === 'TokenExpiredError' ||
+      err.name === 'NotBeforeError')
+  ) {
     const jwtError = handleJWTError(err);
     error = { ...error, ...jwtError };
   } else if (err instanceof AppError) {
-    // Custom application errors
+    // Custom application errors (including UnauthorizedError with custom messages)
     error = {
       statusCode: err.statusCode,
       message: err.message,
