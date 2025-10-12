@@ -1,7 +1,6 @@
 // tests/auth.int.test.js
 const request = require('supertest');
 const { GenericContainer } = require('testcontainers');
-const redisClient = require('../../utils/redisClient');
 
 jest.setTimeout(60000);
 
@@ -9,6 +8,7 @@ let postgresContainer;
 let redisContainer;
 let app;
 let db;
+let redisClientModule;
 const testUserEmail = 'john@example.com';
 const testUserPassword = 'validPassword123';
 
@@ -55,6 +55,14 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
     // Set environment variables for Redis
     process.env.REDIS_HOST = redisHost;
     process.env.REDIS_PORT = String(redisPort);
+    process.env.REDIS_URL = `redis://${redisHost}:${redisPort}`;
+
+    // Maintenant qu'on a les bonnes variables d'env, on peut initialiser Redis
+    redisClientModule = require('../../utils/redisClient');
+    redisClientModule.initializeRedisClient(process.env.REDIS_URL);
+
+    // Attendre que Redis soit prêt
+    await redisClientModule.client.connect();
 
     db = require('../../models');
     await db.sequelize.sync({ force: true });
@@ -77,9 +85,9 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
 
   afterAll(async () => {
     if (db && db.sequelize) await db.sequelize.close();
+    if (redisClientModule) await redisClientModule.disconnect();
     if (postgresContainer) await postgresContainer.stop();
     if (redisContainer) await redisContainer.stop();
-    await redisClient.disconnect(); // Close Redis client
     jest.restoreAllMocks(); // Restore any global mocks
   });
 
