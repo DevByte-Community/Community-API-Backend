@@ -20,6 +20,7 @@ describe('AuthService', () => {
     jest.clearAllMocks();
   });
 
+  // SIGNUP ─────────────────────────────
   describe('signup', () => {
     it('should hash password, create user, and return tokens', async () => {
       bcrypt.hash.mockResolvedValue('hashed_pw');
@@ -59,6 +60,7 @@ describe('AuthService', () => {
     });
   });
 
+  // SIGNIN ─────────────────────────────
   describe('signin', () => {
     it('should return tokens if credentials valid', async () => {
       const user = {
@@ -96,6 +98,48 @@ describe('AuthService', () => {
       await expect(
         authService.signin({ email: 'john@example.com', password: 'wrongpass' })
       ).rejects.toThrow('Invalid credentials.');
+    });
+  });
+
+  // UPDATE PASSWORD BY EMAIL ─────────────────────────────
+  describe('updatePasswordByEmail', () => {
+    it('should hash new password and update user', async () => {
+      const mockUser = {
+        email: 'user@example.com',
+        save: jest.fn(),
+      };
+
+      User.findOne.mockResolvedValue(mockUser);
+      bcrypt.hash.mockResolvedValue('new_hashed_pw');
+
+      const result = await authService.updatePasswordByEmail('user@example.com', 'newPassword123');
+
+      expect(User.findOne).toHaveBeenCalledWith({ where: { email: 'user@example.com' } });
+      expect(bcrypt.hash).toHaveBeenCalledWith('newPassword123', 10);
+      expect(mockUser.password).toBe('new_hashed_pw');
+      expect(mockUser.save).toHaveBeenCalled();
+      expect(result).toBe(true);
+    });
+
+    it('should throw error if user not found', async () => {
+      User.findOne.mockResolvedValue(null);
+
+      await expect(authService.updatePasswordByEmail('missing@example.com', 'newpass')).rejects.toThrow(
+        'User not found'
+      );
+    });
+  });
+
+  // FIND USER BY EMAIL ─────────────────────────────
+  describe('findUserByEmail', () => {
+    it('should call User.findOne with correct email', async () => {
+      const mockUser = { id: 1, email: 'user@example.com' };
+      User.findOne.mockResolvedValue(mockUser);
+
+      const result = await authService.findUserByEmail('user@example.com');
+
+      expect(User.findOne).toHaveBeenCalledWith({ where: { email: 'user@example.com' } });
+      expect(result).toEqual(mockUser);
     });
   });
 });

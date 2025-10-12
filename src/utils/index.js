@@ -19,7 +19,7 @@ class Validator {
       };
     }
 
-    return { value };
+    return { _value: value };
   }
 }
 
