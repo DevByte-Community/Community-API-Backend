@@ -118,7 +118,7 @@ class AuthService {
   async resetPassword({ email, currentPassword, newPassword }) {
     const user = await User.findOne({ where: { email } });
     if (!user) {
-      logger.info('user not found using email: ', email);
+      logger.info('user not found using');
       const error = new Error('User not found');
       error.statusCode = 404;
       throw error;

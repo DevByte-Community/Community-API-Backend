@@ -19,7 +19,22 @@ services:
     image: redis:7-alpine
     container_name: redis_container
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:6379"
+    networks:
+      - community-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio_container
+    ports:
+      - "${MINIO_UI_PORT}:9000"
+      - "${MINIO_ADMIN_PORT}:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
     networks:
       - community-network
 
@@ -40,6 +55,7 @@ services:
 
 volumes:
   postgres_container_data:
+  minio_data:
 
 networks:
   community-network:
