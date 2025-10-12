@@ -1,9 +1,12 @@
-const path = require("path");
-const dotenv = require("dotenv");
-const { Sequelize } = require("sequelize");
+const path = require('path');
+const dotenv = require('dotenv');
+const { Sequelize } = require('sequelize');
+const createLogger = require('./utils/logger');
+
+const logger = createLogger('DB_CONFIG');
 
 // Load different env files depending on NODE_ENV
-const envFile = process.env.NODE_ENV === "test" ? ".env.test" : ".env";
+const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env';
 dotenv.config({ path: path.resolve(process.cwd(), envFile) });
 
 const sequelize = new Sequelize(
@@ -13,19 +16,19 @@ const sequelize = new Sequelize(
   {
     host: process.env.POSTGRES_HOST,
     port: process.env.POSTGRES_PORT,
-    dialect: "postgres",
+    dialect: 'postgres',
     logging: false, // disable noisy SQL logs
   }
 );
 
 // Test the connection
-if (process.env.NODE_ENV !== "test") {
+if (process.env.NODE_ENV !== 'test') {
   (async () => {
     try {
       await sequelize.authenticate();
-      console.log("✅ Connected to PostgreSQL via Sequelize");
+      logger.info('✅ Connected to PostgreSQL via Sequelize');
     } catch (err) {
-      console.error("❌ Unable to connect:", err);
+      logger.warn('❌ Unable to connect:', err);
     }
   })();
 }

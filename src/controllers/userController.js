@@ -1,32 +1,38 @@
+const { uploadProfilePicture } = require('../services/userService');
+const createLogger = require('../utils/logger');
+const { asyncHandler } = require('../middleware/errorHandler');
+const { ValidationError } = require('../utils/customErrors');
+
+const logger = createLogger('USER_CONTROLLER');
+
 /**
- * User Controller
- * --------------
- * Handles user creation:
- * - Listing user
- * - Creating new users
- * - Fetch user by ID
+ * Update user profile picture
+ * @route PATCH /api/v1/user/profile/picture
+ * @access Private
  */
+const updateProfilePicture = asyncHandler(async (req, res) => {
+  // Validate file upload
+  if (!req.file) {
+    throw new ValidationError('No file uploaded. Please provide a profile picture.');
+  }
 
-// GET all users
+  const userId = req.user.id;
+  const fileBuffer = req.file.buffer;
+  const originalFileName = req.file.originalname;
+  const mimeType = req.file.mimetype; // Already validated by multer middleware
 
- const getUsers = (req, res) => {
-  res.json({ message: 'List of users (to be implemented)' });
-};
+  // Upload the profile picture (service will throw errors if something fails)
+  const updatedUser = await uploadProfilePicture(req.user, fileBuffer, originalFileName, mimeType);
 
-// POST new user
+  logger.info(`Profile picture updated successfully - User ID: ${userId}`);
 
- const createUser = (req, res) => {
-  res.json({ message: 'User creation (to be implemented)' });
-};
-
-// GET user by ID
-
- const fetchUser = (req, res) => {
-  res.json({ message: 'User creation (to be implemented)' });
-};
+  return res.status(200).json({
+    success: true,
+    message: 'Profile picture updated successfully',
+    user: updatedUser,
+  });
+});
 
 module.exports = {
-  getUsers,
-  createUser,
-  fetchUser
+  updateProfilePicture,
 };

@@ -5,7 +5,7 @@ const { User } = require('../models');
 const { generateTokens } = require('../utils/jwt');
 const createLogger = require('../utils/logger');
 
-const logger = createLogger('MODULE:AUTH_SERVICE');
+const logger = createLogger('AUTH_SERVICE');
 
 const SALT_ROUNDS = 10;
 
@@ -36,7 +36,8 @@ class AuthService {
           fullname: user.fullname,
           email: user.email,
           roles: user.roles,
-          created_at: user.createdAt,
+          profilePicture: user.profilePicture,
+          createdAt: user.createdAt,
         },
       };
     } catch (err) {
@@ -83,7 +84,8 @@ class AuthService {
           fullname: user.fullname,
           email: user.email,
           roles: user.roles,
-          created_at: user.createdAt,
+          profilePicture: user.profilePicture,
+          createdAt: user.createdAt,
         },
       };
     } catch (err) {
@@ -92,21 +94,6 @@ class AuthService {
       error.statusCode = 500;
       throw error;
     }
-  }
-
-  // update password (hash then update)
-  async updatePasswordByEmail(email, newPassword) {
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
-      const error = new Error('User not found');
-      error.statusCode = 404;
-      throw error;
-    }
-    const password_hash = await bcrypt.hash(newPassword, SALT_ROUNDS);
-    user.password = password_hash;
-    await user.save();
-    logger.info(`Password updated for ${email}`);
-    return true;
   }
 
   // find user by email (used by forgot-password)

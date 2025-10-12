@@ -9,17 +9,15 @@ const env = process.env.NODE_ENV || 'development';
 const config = require(path.join(__dirname, '/../../config/config.js'))[env];
 const db = {};
 
-// console.log('Database Config:', config);
-
 let sequelize;
 if (config.use_env_variable) {
   sequelize = new Sequelize(process.env[config.use_env_variable], config);
 } else {
   sequelize = new Sequelize(config.database, config.username, config.password, {
-    // Pass config object directly
     host: config.host,
     port: config.port,
     dialect: config.dialect,
+    logging: config.logging !== undefined ? config.logging : false, // Disable SQL query logging
   });
 }
 

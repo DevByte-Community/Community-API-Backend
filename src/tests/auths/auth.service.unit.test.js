@@ -76,7 +76,10 @@ describe('AuthService', () => {
       bcrypt.compare.mockResolvedValue(true);
       generateTokens.mockReturnValue({ accessToken: 'acc', refreshToken: 'ref' });
 
-      const result = await authService.signin({ email: 'john@example.com', password: 'password123' });
+      const result = await authService.signin({
+        email: 'john@example.com',
+        password: 'password123',
+      });
 
       expect(User.findOne).toHaveBeenCalledWith({ where: { email: 'john@example.com' } });
       expect(bcrypt.compare).toHaveBeenCalledWith('password123', 'hashed_pw');
@@ -98,35 +101,6 @@ describe('AuthService', () => {
       await expect(
         authService.signin({ email: 'john@example.com', password: 'wrongpass' })
       ).rejects.toThrow('Invalid credentials.');
-    });
-  });
-
-  // UPDATE PASSWORD BY EMAIL ─────────────────────────────
-  describe('updatePasswordByEmail', () => {
-    it('should hash new password and update user', async () => {
-      const mockUser = {
-        email: 'user@example.com',
-        save: jest.fn(),
-      };
-
-      User.findOne.mockResolvedValue(mockUser);
-      bcrypt.hash.mockResolvedValue('new_hashed_pw');
-
-      const result = await authService.updatePasswordByEmail('user@example.com', 'newPassword123');
-
-      expect(User.findOne).toHaveBeenCalledWith({ where: { email: 'user@example.com' } });
-      expect(bcrypt.hash).toHaveBeenCalledWith('newPassword123', 10);
-      expect(mockUser.password).toBe('new_hashed_pw');
-      expect(mockUser.save).toHaveBeenCalled();
-      expect(result).toBe(true);
-    });
-
-    it('should throw error if user not found', async () => {
-      User.findOne.mockResolvedValue(null);
-
-      await expect(authService.updatePasswordByEmail('missing@example.com', 'newpass')).rejects.toThrow(
-        'User not found'
-      );
     });
   });
 

@@ -17,7 +17,7 @@ const {
 } = require('../services/otpService');
 const { sendOtpEmail } = require('../services/emailService');
 
-const logger = createLogger('MODULE:AUTH_CONTROLLER');
+const logger = createLogger('AUTH_CONTROLLER');
 
 class AuthController {
   // POST /api/v1/auth/signup
