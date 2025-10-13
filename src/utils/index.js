@@ -1,4 +1,6 @@
 // src/utils/index.js
+const customErrors = require('./customErrors');
+
 class Validator {
   /**
    * Validate request body against a Joi schema
@@ -24,3 +26,4 @@ class Validator {
 }
 
 module.exports = Validator;
+module.exports.customErrors = customErrors;

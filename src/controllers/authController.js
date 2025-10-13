@@ -17,7 +17,7 @@ const {
 } = require('../services/otpService');
 const { sendOtpEmail } = require('../services/emailService');
 
-const logger = createLogger('MODULE:AUTH_CONTROLLER');
+const logger = createLogger('AUTH_CONTROLLER');
 
 class AuthController {
   // POST /api/v1/auth/signup
@@ -105,7 +105,7 @@ class AuthController {
       // remove OTP
       await deleteOtpForEmail(email);
 
-      logger.info(`Password reset for ${email}`);
+      logger.info(`Otp code verified successfully for ${email}`);
       return res.status(200).json({ success: true, message: 'Verified otp successfully' });
     } catch (err) {
       // do not log password or OTP
