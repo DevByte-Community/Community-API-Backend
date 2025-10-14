@@ -1,5 +1,6 @@
 const express = require('express');
 const authController = require('../controllers/authController');
+const authMiddleware = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
@@ -8,7 +9,7 @@ const router = express.Router();
  * /api/v1/auth/signup:
  *   post:
  *     summary: Register a new user
- *     tags: [Authentication]
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
@@ -21,7 +22,7 @@ const router = express.Router();
  *                 example: John Doe
  *               email:
  *                 type: string
- *                 example: john@example.com
+ *                 example: johnDoe@gmail.com
  *               password:
  *                 type: string
  *                 example: password123
@@ -42,7 +43,7 @@ router.post('/signup', authController.signup);
  * /api/v1/auth/signin:
  *   post:
  *     summary: Login user and get JWT token
- *     tags: [Authentication]
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
@@ -67,7 +68,7 @@ router.post('/signin', authController.signin);
  * /api/v1/auth/forgot-password:
  *   post:
  *     summary: Request an OTP for password reset
- *     tags: [Authentication]
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
@@ -77,7 +78,7 @@ router.post('/signin', authController.signin);
  *             properties:
  *               email:
  *                 type: string
- *                 example: john@example.com
+ *                 example: johnDoe@gmail.com
  *     responses:
  *       200:
  *         description: OTP sent successfully (or email not found)
@@ -93,7 +94,7 @@ router.post('/forgot-password', authController.forgotPassword);
  * /api/v1/auth/verify-otp:
  *   post:
  *     summary: Verify OTP and reset user password
- *     tags: [Authentication]
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
@@ -107,7 +108,7 @@ router.post('/forgot-password', authController.forgotPassword);
  *             properties:
  *               email:
  *                 type: string
- *                 example: test@gmail.com
+ *                 example: johnDoe@gmail.com
  *               otp:
  *                 type: string
  *                 example: 123456
@@ -126,7 +127,7 @@ router.post('/verify-otp', authController.verifyOtp);
  * /api/v1/auth/reset-password:
  *   post:
  *     summary: Reset password for authenticated user
- *     tags: [Authentication]
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
@@ -140,7 +141,7 @@ router.post('/verify-otp', authController.verifyOtp);
  *             properties:
  *               email:
  *                 type: string
- *                 example: john@example.com
+ *                 example: johnDoe@gmail.com
  *               current_password:
  *                 type: string
  *                 example: oldpassword123

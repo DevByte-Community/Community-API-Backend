@@ -19,4 +19,15 @@ function generateTokens(user) {
   return { accessToken, refreshToken };
 }
 
-module.exports = { generateTokens };
+/**
+ * Verify access token and return decoded payload.
+ */
+function verifyAccessToken(token) {
+  try {
+    return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+  } catch (err) {
+    throw new Error('Invalid or expired token');
+  }
+}
+
+module.exports = { generateTokens, verifyAccessToken };

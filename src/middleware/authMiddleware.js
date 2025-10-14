@@ -1,24 +1,18 @@
-// middleware/authMiddleware.js
-const passport = require('passport');
-const { Strategy: JwtStrategy, ExtractJwt } = require('passport-jwt');
+const { verifyAccessToken } = require('../utils/jwt');
 
-const User = require('../models/user');
+module.exports = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, message: 'Missing or invalid token' });
+  }
 
-const opts = {
-  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: process.env.ACCESS_TOKEN_SECRET,
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = verifyAccessToken(token);
+    // console.log(verifyAccessToken("<paste_token_here>"));
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+  }
 };
-
-passport.use(
-  new JwtStrategy(opts, async (jwt_payload, done) => {
-    try {
-      const user = await User.findByPk(jwt_payload.id);
-      if (user) return done(null, user);
-      return done(null, false);
-    } catch (err) {
-      return done(err, false);
-    }
-  })
-);
-
-module.exports = passport;

@@ -1,32 +1,31 @@
-/**
- * User Controller
- * --------------
- * Handles user creation:
- * - Listing user
- * - Creating new users
- * - Fetch user by ID
- */
+// controllers/userController.js
+const userService = require('../services/userService');
+const createLogger = require('../utils/logger');
+const Validator = require('../utils/index');
+const { updateProfileSchema } = require('../utils/validator');
 
-// GET all users
+const logger = createLogger('MODULE:USER_CONTROLLER');
 
- const getUsers = (req, res) => {
-  res.json({ message: 'List of users (to be implemented)' });
-};
+class UserController {
 
-// POST new user
+  // PATCH /api/v1/user/profile
+  async updateProfile(req, res) {
+    try {
+      const { _value, errorResponse } = Validator.validate(updateProfileSchema, req.body);
+      if (errorResponse) return res.status(400).json(errorResponse);
 
- const createUser = (req, res) => {
-  res.json({ message: 'User creation (to be implemented)' });
-};
+      const userId = req.user.id; // comes from authentication middleware
+      const result = await userService.updateProfile(userId, _value);
 
-// GET user by ID
+      logger.info(`Profile update successful for userId=${userId}`);
+      return res.status(200).json(result);
+    } catch (err) {
+      logger.error(`updateProfile failed for userId=${req.user?.id} - ${err.message}`);
+      const status = err.statusCode || 500;
+      return res.status(status).json({ success: false, message: err.message });
+    }
+  }
 
- const fetchUser = (req, res) => {
-  res.json({ message: 'User creation (to be implemented)' });
-};
+}
 
-module.exports = {
-  getUsers,
-  createUser,
-  fetchUser
-};
+module.exports = new UserController();

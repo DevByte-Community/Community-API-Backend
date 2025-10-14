@@ -138,7 +138,8 @@ class AuthService {
     await user.save();
     logger.info(`Password reset for ${email}`);
     return true;
-  }
+  } 
+
 }
 
 module.exports = new AuthService();

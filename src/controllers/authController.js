@@ -7,7 +7,7 @@ const {
   signinSchema,
   forgotPasswordSchema,
   verifyOtpSchema,
-  resetPasswordSchema,
+  resetPasswordSchema
 } = require('../utils/validator');
 const {
   generateOtp,
@@ -142,6 +142,7 @@ class AuthController {
       return res.status(status).json({ success: false, message: err.message });
     }
   }
+
 }
 
 module.exports = new AuthController();

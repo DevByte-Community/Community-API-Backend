@@ -23,7 +23,7 @@ router.use('/resources', resourceRoutes);
 router.use('/projects', projectRoutes);
 router.use('/jobs', jobRoutes);
 router.use('/blogs', blogRoutes);
-router.use('/users', userRoutes);
+router.use('/user', userRoutes);
 router.use('/auth', authRoutes);
 
 // DB test route
