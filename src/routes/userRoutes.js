@@ -1,5 +1,5 @@
 const express = require('express');
-const { updateProfilePicture } = require('../controllers/userController');
+const { updateProfilePicture, updateProfile } = require('../controllers/userController');
 const { authenticateJWT } = require('../middleware/authMiddleware');
 const { handleMulterUpload } = require('../middleware/uploadMiddleware');
 
@@ -169,5 +169,38 @@ router.patch(
   handleMulterUpload('profile_picture'),
   updateProfilePicture
 );
+
+/**
+ * @swagger
+ * /api/v1/user/profile:
+ *   patch:
+ *     summary: Update user profile(fullname and email only for now)
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fullname:
+ *                 type: string
+ *                 example: Jane Doe
+ *               email:
+ *                 type: string
+ *                 example: johnDoe@gmail.com
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       409:
+ *         description: Email already in use
+ */
+router.patch('/profile', authenticateJWT, updateProfile);
 
 module.exports = router;

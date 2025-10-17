@@ -1,10 +1,22 @@
 // tests/user/userController.unit.test.js
+// jest.mock('../../services/userService');
+// jest.mock('../../utils/logger');
+// jest.mock('../../utils/index');
+// const userController = require('../../controllers/userController');
+// const userService = require('../../services/userService');
+// const createLogger = require('../../utils/logger');
+// const Validator = require('../../utils/index');
+
+
+// const logger = { info: jest.fn(), error: jest.fn() };
+// createLogger.mockReturnValue(logger);
 
 // Mock the service before importing controller
 const mockUploadProfilePicture = jest.fn();
 jest.mock('../../services/userService', () => ({
   uploadProfilePicture: mockUploadProfilePicture,
 }));
+
 
 // Mock logger
 jest.mock('../../utils/logger', () => {
@@ -319,4 +331,64 @@ describe('UserController - updateProfilePicture', () => {
       );
     });
   });
+
+  // ============================================================
+  // NON-CRITICAL: LOGGING
+  // ============================================================
+  describe('User Controller - updateProfile', () => {
+  let req, res;
+
+  beforeEach(() => {
+    req = {
+      user: { id: 1 },
+      body: { fullname: 'New Name', email: 'new@example.com' },
+    };
+    res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    jest.clearAllMocks();
+  });
+
+  test('should update fullname and return success response', async () => {
+    Validator.validate.mockReturnValue({ _value: req.body, errorResponse: null });
+
+    const mockResponse = {
+      success: true,
+      message: 'Profile updated successfully',
+      user: { id: 1, fullname: 'New Name', email: 'new@example.com' },
+    };
+    userService.updateProfile.mockResolvedValue(mockResponse);
+
+    await userController.updateProfile(req, res);
+
+    expect(userService.updateProfile).toHaveBeenCalledWith(1, req.body);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(mockResponse);
+    expect(logger.info).toHaveBeenCalledWith('Profile update successful for userId=1');
+  });
+
+  test('should throw error if validation fails', async () => {
+    Validator.validate.mockReturnValue({ _value: null, errorResponse: { message: 'Invalid data' } });
+
+    await userController.updateProfile(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Invalid data' });
+    expect(userService.updateProfile).not.toHaveBeenCalled();
+  });
+
+  test('should handle service error and rethrow correctly', async () => {
+    Validator.validate.mockReturnValue({ _value: req.body, errorResponse: null });
+    userService.updateProfile.mockRejectedValue({ message: 'Unexpected error', statusCode: 500 });
+
+    await userController.updateProfile(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ success: false, message: 'Unexpected error' });
+    expect(logger.error).toHaveBeenCalledWith('updateProfile failed for userId=1 - Unexpected error');
+  });
 });
+});
+
+
