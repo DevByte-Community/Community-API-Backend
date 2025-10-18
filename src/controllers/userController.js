@@ -5,7 +5,7 @@ const { ValidationError } = require('../utils/customErrors');
 const { updateProfileSchema } = require('../utils/validator');
 const Validator = require('../utils/index');
 
-const logger = createLogger('MODULE:USER_CONTROLLER');
+const logger = createLogger('USER_CONTROLLER');
 
 /**
  * Update user profile picture
@@ -35,15 +35,15 @@ const updateProfilePicture = asyncHandler(async (req, res) => {
   });
 });
 
-// POST new user
+// PATCH new user
 // PATCH /api/v1/user/profile
 const updateProfile = asyncHandler(async (req, res) => {
   try {
     const { _value, errorResponse } = Validator.validate(updateProfileSchema, req.body);
     if (errorResponse) return res.status(400).json(errorResponse);
 
-    const userId = req.user.id; // comes from authentication middleware
-    // const result = await userService.updateProfile(userId, _value);
+    // comes from authentication middleware
+    const userId = req.user.id;
 
     const result = await updateProfileData(userId, _value);
 
@@ -58,19 +58,7 @@ const updateProfile = asyncHandler(async (req, res) => {
 }
 );
 
-
-//  const fetchUser = (req, res) => {
-//   res.json({ message: 'User creation (to be implemented)' });
-// };
-
-//  const createUser = (req, res) => {
-//   res.json({ message: 'User creation (to be implemented)' });
-// };
-
 module.exports = {
   updateProfilePicture,
   updateProfile,
-  LogoutUser,
-  // createUser,
-  // fetchUser,
 };

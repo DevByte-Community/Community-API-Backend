@@ -1,7 +1,7 @@
 const { Client } = require('minio');
 const createLogger = require('./logger');
 
-const logger = createLogger('MODULE:MINIO_CLIENT');
+const logger = createLogger('MINIO_CLIENT');
 
 let minioClient;
 let bucketName;

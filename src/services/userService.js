@@ -5,7 +5,7 @@ const { ValidationError, NotFoundError, InternalServerError } = require('../util
 const path = require('path');
 const { User } = require('../models');
 
-const logger = createLogger('MODULE:USER_SERVICE');
+const logger = createLogger('USER_SERVICE');
 
 /**
  * Upload profile picture for a user
@@ -139,5 +139,4 @@ const updateProfileData = async (userId, updates) => {
 module.exports = {
     uploadProfilePicture,
     updateProfileData,
-    // logoutUser,
 };

@@ -1,16 +1,4 @@
 // tests/user/userController.unit.test.js
-// jest.mock('../../services/userService');
-// jest.mock('../../utils/logger');
-// jest.mock('../../utils/index');
-// const userController = require('../../controllers/userController');
-// const userService = require('../../services/userService');
-// const createLogger = require('../../utils/logger');
-// const Validator = require('../../utils/index');
-
-
-// const logger = { info: jest.fn(), error: jest.fn() };
-// createLogger.mockReturnValue(logger);
-
 // Mock the service before importing controller
 const mockUploadProfilePicture = jest.fn();
 jest.mock('../../services/userService', () => ({
