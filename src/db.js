@@ -1,6 +1,8 @@
 const path = require('path');
 const dotenv = require('dotenv');
 const { Sequelize } = require('sequelize');
+const env = process.env.NODE_ENV || 'development';
+const config = require(path.join(__dirname, '../config/config.js'))[env];
 const createLogger = require('./utils/logger');
 
 const logger = createLogger('DB_CONFIG');
@@ -9,17 +11,17 @@ const logger = createLogger('DB_CONFIG');
 const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env';
 dotenv.config({ path: path.resolve(process.cwd(), envFile) });
 
-const sequelize = new Sequelize(
-  process.env.POSTGRES_DB,
-  process.env.POSTGRES_USER,
-  process.env.POSTGRES_PASSWORD,
-  {
-    host: process.env.POSTGRES_HOST,
-    port: process.env.POSTGRES_PORT,
-    dialect: 'postgres',
-    logging: false, // disable noisy SQL logs
-  }
-);
+let sequelize;
+if (config.use_env_variable) {
+  sequelize = new Sequelize(process.env[config.use_env_variable], config);
+} else {
+  sequelize = new Sequelize(config.database, config.username, config.password, {
+    host: config.host,
+    port: config.port,
+    dialect: config.dialect,
+    logging: config.logging !== undefined ? config.logging : false, // Disable SQL query logging
+  });
+}
 
 // Test the connection
 if (process.env.NODE_ENV !== 'test') {
