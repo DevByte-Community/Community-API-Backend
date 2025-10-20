@@ -218,8 +218,8 @@ router.patch(
  *                       example: Jane Doe
  *                     email:
  *                       type: string
- *                       example: janedoe@example.com
- *                     updated_at:
+ *                       example: jane.doe@example.com
+ *                     updatedAt:
  *                       type: string
  *                       format: date-time
  *                       example: 2025-10-14T12:00:00.000Z
@@ -236,101 +236,14 @@ router.patch(
  *                 message:
  *                   type: string
  *                   example: Invalid input. Please provide a valid fullname or email.
- *             examples:
- *               invalidEmail:
- *                 summary: Invalid email format
- *                 value:
- *                   success: false
- *                   message: Invalid email format
- *               emptyBody:
- *                 summary: No data provided
- *                 value:
- *                   success: false
- *                   message: Request body cannot be empty
  *       401:
  *         description: Unauthorized - Missing or invalid JWT token
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: Authentication required. Please provide a valid JWT token.
- *             examples:
- *               noToken:
- *                 summary: No token provided
- *                 value:
- *                   success: false
- *                   message: Authentication required. Please provide a valid JWT token in the Authorization header.
- *               invalidFormat:
- *                 summary: Invalid token format
- *                 value:
- *                   success: false
- *                   message: Invalid authentication format. Use Authorization Bearer <token>
- *               tokenExpired:
- *                 summary: Token expired
- *                 value:
- *                   success: false
- *                   message: Token has expired. Please login again.
- *               invalidToken:
- *                 summary: Invalid token
- *                 value:
- *                   success: false
- *                   message: Invalid token. Please provide a valid JWT token.
- *               userNotFound:
- *                 summary: User no longer exists
- *                 value:
- *                   success: false
- *                   message: User associated with this token no longer exists.
  *       404:
  *         description: User not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: User not found
  *       409:
  *         description: Conflict - Email already in use
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: Email already in use
- *             examples:
- *               duplicateEmail:
- *                 summary: Email already exists
- *                 value:
- *                   success: false
- *                   message: Email already in use
  *       500:
  *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: An error occurred while updating the profile
  */
 router.patch('/profile', authenticateJWT, updateProfile);
 
