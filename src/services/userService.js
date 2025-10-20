@@ -82,16 +82,17 @@ const uploadProfilePicture = async (
 };
 
 // update user profile (fullname only for now)
-const updateProfileData = async (userId, updates) => {
+// services/userService.js
+
+const updateProfileData = async (user, updates) => {
     try {
-        const user = await User.findByPk(userId);
         if (!user) {
             const error = new Error('User not found');
             error.statusCode = 404;
             throw error;
         }
 
-        // Check if email already exists
+        // Check if email already exists (avoid reusing same email)
         if (updates.email && updates.email !== user.email) {
             const existing = await User.findOne({ where: { email: updates.email } });
             if (existing) {
@@ -105,8 +106,6 @@ const updateProfileData = async (userId, updates) => {
         if (updates.fullname) user.fullname = updates.fullname;
         if (updates.email) user.email = updates.email;
         user.updatedAt = new Date();
-        user.roles = user.roles || 'USER'; //Here i Ensure roles is not null
-        // user.roles = user.roles || ['USER']; //Here i Ensure roles is not null
 
         await user.save();
 
@@ -119,20 +118,15 @@ const updateProfileData = async (userId, updates) => {
                 id: user.id,
                 fullname: user.fullname,
                 email: user.email,
-                roles: user.roles,
                 updated_at: user.updatedAt,
             },
         };
     } catch (err) {
-        logger.error(`updateProfile failed for id=${userId} - ${err.message}`);
-        // Re-throw custom errors
-        if (err instanceof ValidationError || err instanceof NotFoundError) {
-            throw err;
-        }
-        // Wrap other errors in InternalServerError
-        throw new InternalServerError(`Failed to update profile : ${err.message}`);
+        logger.error(`updateProfile failed for id=${user?.id} - ${err.message}`);
+        throw new InternalServerError(`Failed to update profile: ${err.message}`);
     }
-}
+};
+
 
 
 
