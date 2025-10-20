@@ -12,14 +12,14 @@ const logger = createLogger('SERVER');
 const { initializeBucket } = require('./utils/minioClient');
 
 const app = require('./app');
+const process = require('process');
 
 const PORT = process.env.PORT || 4000;
 
 logger.info('👉 Loaded DB config:', {
-  user: process.env.POSTGRES_USER,
-  db: process.env.POSTGRES_DB,
-  host: process.env.POSTGRES_HOST,
-  port: process.env.POSTGRES_PORT,
+  databaseUrl: process.env.DATABASE_URL
+    ? `${process.env.DATABASE_URL.slice(0, 20)}#####`
+    : 'Not set',
 });
 
 // Initialize MinIO bucket on startup
