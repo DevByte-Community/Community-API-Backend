@@ -172,9 +172,10 @@ router.patch(
 
 /**
  * @swagger
- * /api/v1/user/profile:
+ * /api/v1/users/profile:
  *   patch:
- *     summary: Update user profile(fullname and email only for now)
+ *     summary: Update user profile (fullname and email)
+ *     description: Update the authenticated user's profile details such as fullname and email address. The endpoint validates email uniqueness before updating.
  *     tags: [User]
  *     security:
  *       - bearerAuth: []
@@ -190,17 +191,149 @@ router.patch(
  *                 example: Jane Doe
  *               email:
  *                 type: string
- *                 example: johnDoe@gmail.com
+ *                 example: jane.doe@example.com
  *     responses:
  *       200:
  *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Profile updated successfully
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                       example: 123e4567-e89b-12d3-a456-426614174000
+ *                     fullname:
+ *                       type: string
+ *                       example: Jane Doe
+ *                     email:
+ *                       type: string
+ *                       example: janedoe@example.com
+ *                     updated_at:
+ *                       type: string
+ *                       format: date-time
+ *                       example: 2025-10-14T12:00:00.000Z
  *       400:
- *         description: Validation error
+ *         description: Bad request - Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Invalid input. Please provide a valid fullname or email.
+ *             examples:
+ *               invalidEmail:
+ *                 summary: Invalid email format
+ *                 value:
+ *                   success: false
+ *                   message: Invalid email format
+ *               emptyBody:
+ *                 summary: No data provided
+ *                 value:
+ *                   success: false
+ *                   message: Request body cannot be empty
  *       401:
- *         description: Unauthorized
+ *         description: Unauthorized - Missing or invalid JWT token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Authentication required. Please provide a valid JWT token.
+ *             examples:
+ *               noToken:
+ *                 summary: No token provided
+ *                 value:
+ *                   success: false
+ *                   message: Authentication required. Please provide a valid JWT token in the Authorization header.
+ *               invalidFormat:
+ *                 summary: Invalid token format
+ *                 value:
+ *                   success: false
+ *                   message: Invalid authentication format. Use Authorization Bearer <token>
+ *               tokenExpired:
+ *                 summary: Token expired
+ *                 value:
+ *                   success: false
+ *                   message: Token has expired. Please login again.
+ *               invalidToken:
+ *                 summary: Invalid token
+ *                 value:
+ *                   success: false
+ *                   message: Invalid token. Please provide a valid JWT token.
+ *               userNotFound:
+ *                 summary: User no longer exists
+ *                 value:
+ *                   success: false
+ *                   message: User associated with this token no longer exists.
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: User not found
  *       409:
- *         description: Email already in use
+ *         description: Conflict - Email already in use
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Email already in use
+ *             examples:
+ *               duplicateEmail:
+ *                 summary: Email already exists
+ *                 value:
+ *                   success: false
+ *                   message: Email already in use
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: An error occurred while updating the profile
  */
 router.patch('/profile', authenticateJWT, updateProfile);
+
+
 
 module.exports = router;
