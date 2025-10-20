@@ -82,8 +82,6 @@ const uploadProfilePicture = async (
 };
 
 // update user profile (fullname only for now)
-// services/userService.js
-
 const updateProfileData = async (user, updates) => {
     try {
         if (!user) {
@@ -118,7 +116,7 @@ const updateProfileData = async (user, updates) => {
                 id: user.id,
                 fullname: user.fullname,
                 email: user.email,
-                updated_at: user.updatedAt,
+                updatedAt: user.updatedAt,
             },
         };
     } catch (err) {
