@@ -14,7 +14,7 @@
     "format": "prettier --write .",
     "db:start": "docker-compose up -d postgres",
     "db:stop": "docker-compose down",
-    "prepare": "husky install",
+    "prepare": "if [ \"$NODE_ENV\" != \"production\" ]; then husky install; fi",
     "migrate": "sequelize-cli db:migrate",
     "migrate:undo": "sequelize-cli db:migrate:undo",
     "migration:generate": "sequelize-cli migration:generate --name"
