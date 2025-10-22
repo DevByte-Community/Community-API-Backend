@@ -1,5 +1,5 @@
 const express = require('express');
-const { updateProfilePicture } = require('../controllers/userController');
+const { updateProfilePicture, updateProfile } = require('../controllers/userController');
 const { authenticateJWT } = require('../middleware/authMiddleware');
 const { handleMulterUpload } = require('../middleware/uploadMiddleware');
 
@@ -169,5 +169,84 @@ router.patch(
   handleMulterUpload('profile_picture'),
   updateProfilePicture
 );
+
+/**
+ * @swagger
+ * /api/v1/users/profile:
+ *   patch:
+ *     summary: Update user profile (fullname and email)
+ *     description: Update the authenticated user's profile details such as fullname and email address. The endpoint validates email uniqueness before updating.
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fullname:
+ *                 type: string
+ *                 example: Jane Doe
+ *               email:
+ *                 type: string
+ *                 example: jane.doe@example.com
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Profile updated successfully
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                       example: 123e4567-e89b-12d3-a456-426614174000
+ *                     fullname:
+ *                       type: string
+ *                       example: Jane Doe
+ *                     email:
+ *                       type: string
+ *                       example: jane.doe@example.com
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: 2025-10-14T12:00:00.000Z
+ *       400:
+ *         description: Bad request - Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Invalid input. Please provide a valid fullname or email.
+ *       401:
+ *         description: Unauthorized - Missing or invalid JWT token
+ *       404:
+ *         description: User not found
+ *       409:
+ *         description: Conflict - Email already in use
+ *       500:
+ *         description: Internal server error
+ */
+router.patch('/profile', authenticateJWT, updateProfile);
+
+
 
 module.exports = router;
