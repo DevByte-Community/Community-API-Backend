@@ -39,7 +39,7 @@ const initializeRedisClient = (url) => {
   });
 
   client.on('connect', () => {
-    logger.info(`✅ Connected to Redis at ${redisUrl}`);
+    logger.info(`✅ Connected to Redis at ${redisUrl.slice(0, 7)}###`);
   });
 
   client.on('ready', () => {
