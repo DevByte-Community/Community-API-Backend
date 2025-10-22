@@ -12,6 +12,7 @@ let client;
  */
 const initializeRedisClient = (url) => {
   const redisUrl = url || process.env.REDIS_URL;
+  const isTls = redisUrl.search('localhost') === -1;
 
   if (!redisUrl) {
     logger.warn('⚠️ REDIS_URL not defined, using default localhost:6379');
@@ -23,14 +24,15 @@ const initializeRedisClient = (url) => {
   }
 
   client = new Redis(redisUrl, {
+    tls: isTls,
     // Options pour éviter les reconnections infinies en tests
     retryStrategy: (times) => {
       if (process.env.NODE_ENV === 'test' && times > 3) {
         logger.warn('Redis retry limit reached in test mode');
         return null; // Arrêter les tentatives de reconnection
       }
-      const delay = Math.min(times * 50, 2000);
-      return delay;
+
+      return Math.min(times * 50, 2000);
     },
     maxRetriesPerRequest: process.env.NODE_ENV === 'test' ? 1 : null,
     lazyConnect: process.env.NODE_ENV === 'test', // Ne pas se connecter immédiatement en test
