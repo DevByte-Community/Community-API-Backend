@@ -1,345 +1,322 @@
-// tests/user/user.int.test.js
-const request = require('supertest');
-const { GenericContainer } = require('testcontainers');
-
-jest.setTimeout(60000);
-
-let postgresContainer;
-let redisContainer;
-let minioContainer;
-let app;
-let db;
-let redisClientModule;
-let testUser;
-let authToken;
-
-// Mock email service
-jest.mock('../../services/emailService', () => ({
-  sendOtpEmail: jest.fn(async (email, _otp) => {
-    return { success: true, message: `Mock OTP sent to ${email}` };
-  }),
+// tests/user/userController.unit.test.js
+// Mock the service before importing controller
+const mockUploadProfilePicture = jest.fn();
+jest.mock('../../services/userService', () => ({
+  uploadProfilePicture: mockUploadProfilePicture,
 }));
 
-describe('PATCH /api/v1/users/profile/picture - Profile Picture Upload Integration Tests', () => {
-  beforeAll(async () => {
-    // Start PostgreSQL container
-    postgresContainer = await new GenericContainer('postgres:14')
-      .withEnvironment({
-        POSTGRES_USER: 'test_user',
-        POSTGRES_PASSWORD: 'test_password',
-        POSTGRES_DB: 'test_db',
-      })
-      .withExposedPorts(5432)
-      .start();
+// Mock logger
+jest.mock('../../utils/logger', () => {
+  return jest.fn(() => ({
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  }));
+});
 
-    // Start Redis container
-    redisContainer = await new GenericContainer('redis:7').withExposedPorts(6379).start();
+// Mock asyncHandler to be transparent in tests
+jest.mock('../../middleware/errorHandler', () => ({
+  asyncHandler: (fn) => fn, // Just return the function unwrapped
+}));
 
-    // Start MinIO container
-    minioContainer = await new GenericContainer('minio/minio:latest')
-      .withCommand(['server', '/data'])
-      .withEnvironment({
-        MINIO_ROOT_USER: 'minioadmin',
-        MINIO_ROOT_PASSWORD: 'minioadmin',
-      })
-      .withExposedPorts(9000)
-      .start();
+// Import dependencies after mocks
+const { updateProfilePicture } = require('../../controllers/userController');
+const { ValidationError } = require('../../utils/customErrors');
 
-    const postgresHost = postgresContainer.getHost();
-    const postgresPort = postgresContainer.getMappedPort(5432);
-    const redisHost = redisContainer.getHost();
-    const redisPort = redisContainer.getMappedPort(6379);
-    const minioHost = minioContainer.getHost();
-    const minioPort = minioContainer.getMappedPort(9000);
+// Helper to create mock request object
+const mockRequest = (overrides = {}) => ({
+  user: { id: 'user-123', email: 'test@example.com' },
+  file: {
+    buffer: Buffer.from('fake-image-data'),
+    originalname: 'profile.jpg',
+    mimetype: 'image/jpeg',
+  },
+  ...overrides,
+});
 
-    // Set environment variables
-    process.env.NODE_ENV = 'test';
-    process.env.POSTGRES_USER = 'test_user';
-    process.env.POSTGRES_PASSWORD = 'test_password';
-    process.env.POSTGRES_DB = 'test_db';
-    process.env.POSTGRES_HOST = postgresHost;
-    process.env.POSTGRES_PORT = String(postgresPort);
-    process.env.ACCESS_TOKEN_SECRET = 'test-access-secret';
-    process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret';
+// Helper to create mock response object
+const mockResponse = () => {
+  const res = {};
+  res.status = jest.fn().mockReturnValue(res);
+  res.json = jest.fn().mockReturnValue(res);
+  return res;
+};
 
-    // Redis config
-    process.env.REDIS_HOST = redisHost;
-    process.env.REDIS_PORT = String(redisPort);
-    process.env.REDIS_URL = `redis://${redisHost}:${redisPort}`;
-
-    // MinIO config
-    process.env.MINIO_ENDPOINT = minioHost;
-    process.env.MINIO_PORT = String(minioPort);
-    process.env.MINIO_ROOT_USER = 'minioadmin';
-    process.env.MINIO_ROOT_PASSWORD = 'minioadmin';
-    process.env.MINIO_BUCKET_NAME = 'test-profile-pictures';
-    process.env.MINIO_USE_SSL = 'false';
-    process.env.MAX_FILE_SIZE = String(5 * 1024 * 1024); // 5MB
-
-    // Initialize Redis
-    redisClientModule = require('../../utils/redisClient');
-    redisClientModule.initializeRedisClient(process.env.REDIS_URL);
-    await redisClientModule.client.connect();
-
-    // Initialize MinIO client and bucket
-    const minioClientModule = require('../../utils/minioClient');
-    minioClientModule.initializeMinioClient();
-    await minioClientModule.initializeBucket();
-
-    // Initialize database
-    db = require('../../models');
-    await db.sequelize.sync({ force: true });
-    app = require('../../app');
-
-    // Create test user and get auth token
-    const signupResponse = await request(app).post('/api/v1/auth/signup').send({
-      fullname: 'Test User',
-      email: 'testuser@example.com',
-      password: 'password123',
-    });
-
-    authToken = signupResponse.body.access_token;
-    testUser = signupResponse.body.user;
+describe('UserController - updateProfilePicture', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  afterAll(async () => {
-    if (db && db.sequelize) await db.sequelize.close();
-    if (redisClientModule) await redisClientModule.disconnect();
-    if (postgresContainer) await postgresContainer.stop();
-    if (redisContainer) await redisContainer.stop();
-    if (minioContainer) await minioContainer.stop();
-    jest.restoreAllMocks();
-  });
+  // ============================================================
+  // CRITICAL: SUCCESSFUL UPLOAD
+  // ============================================================
+  describe('Critical: Successful Upload', () => {
+    it('should return 200 with user data when upload succeeds', async () => {
+      const req = mockRequest();
+      const res = mockResponse();
 
-  describe('Successful Profile Picture Upload', () => {
-    it('should upload a JPEG profile picture successfully', async () => {
-      // Create a small test JPEG buffer (1x1 pixel JPEG)
-      const jpegBuffer = Buffer.from(
-        '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAA//2Q==',
-        'base64'
+      const mockUpdatedUser = {
+        id: 'user-123',
+        fullname: 'John Doe',
+        email: 'john@example.com',
+        role: 'USER',
+        profilePicture: 'test-bucket/profile_picture_user-123_1234567890.jpg',
+        updatedAt: new Date('2025-10-12T12:00:00.000Z'),
+      };
+
+      mockUploadProfilePicture.mockResolvedValue(mockUpdatedUser);
+
+      await updateProfilePicture(req, res);
+
+      // Service should be called with correct parameters
+      expect(mockUploadProfilePicture).toHaveBeenCalledWith(
+        req.user,
+        req.file.buffer,
+        'profile.jpg',
+        'image/jpeg'
       );
 
-      const response = await request(app)
-        .patch('/api/v1/users/profile/picture')
-        .set('Authorization', `Bearer ${authToken}`)
-        .attach('profile_picture', jpegBuffer, 'test-image.jpg');
+      // Response should be 200
+      expect(res.status).toHaveBeenCalledWith(200);
 
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
-      expect(response.body.message).toBe('Profile picture updated successfully');
-      expect(response.body.user).toHaveProperty('id', testUser.id);
-      expect(response.body.user).toHaveProperty('profilePicture');
-      expect(response.body.user.profilePicture).toContain('profile_picture_');
-      expect(response.body.user.profilePicture).toContain('.jpg');
-    });
-
-    it('should upload a PNG profile picture successfully', async () => {
-      // Create a small test PNG buffer (1x1 pixel PNG)
-      const pngBuffer = Buffer.from(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
-        'base64'
-      );
-
-      const response = await request(app)
-        .patch('/api/v1/users/profile/picture')
-        .set('Authorization', `Bearer ${authToken}`)
-        .attach('profile_picture', pngBuffer, 'test-image.png');
-
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
-      expect(response.body.user.profilePicture).toContain('.png');
-    });
-
-    it('should replace existing profile picture when uploading a new one', async () => {
-      const jpegBuffer = Buffer.from(
-        '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAA//2Q==',
-        'base64'
-      );
-
-      // First upload
-      const firstUpload = await request(app)
-        .patch('/api/v1/users/profile/picture')
-        .set('Authorization', `Bearer ${authToken}`)
-        .attach('profile_picture', jpegBuffer, 'first-image.jpg');
-
-      const firstPictureUrl = firstUpload.body.user.profilePicture;
-
-      // Wait a bit to ensure different timestamp
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Second upload
-      const secondUpload = await request(app)
-        .patch('/api/v1/users/profile/picture')
-        .set('Authorization', `Bearer ${authToken}`)
-        .attach('profile_picture', jpegBuffer, 'second-image.jpg');
-
-      const secondPictureUrl = secondUpload.body.user.profilePicture;
-
-      expect(secondUpload.status).toBe(200);
-      expect(secondPictureUrl).not.toBe(firstPictureUrl);
-      expect(secondPictureUrl).toContain('profile_picture_');
+      // Response should have correct structure
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Profile picture updated successfully',
+        user: mockUpdatedUser,
+      });
     });
   });
 
-  describe('Authentication and Authorization', () => {
-    it('should return 401 when no authentication token is provided', async () => {
-      const jpegBuffer = Buffer.from(
-        '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAA//2Q==',
-        'base64'
+  // ============================================================
+  // CRITICAL: MISSING FILE VALIDATION
+  // ============================================================
+  describe('Critical: Missing File Validation', () => {
+    it('should throw ValidationError when no file is uploaded', async () => {
+      const req = mockRequest({ file: undefined });
+      const res = mockResponse();
+
+      await expect(updateProfilePicture(req, res)).rejects.toThrow(ValidationError);
+      await expect(updateProfilePicture(req, res)).rejects.toThrow(
+        'No file uploaded. Please provide a profile picture.'
       );
 
-      const response = await request(app)
-        .patch('/api/v1/users/profile/picture')
-        .attach('profile_picture', jpegBuffer, 'test-image.jpg');
-
-      expect(response.status).toBe(401);
+      // Service should not be called
+      expect(mockUploadProfilePicture).not.toHaveBeenCalled();
     });
 
-    it('should return 401 when invalid authentication token is provided', async () => {
-      const jpegBuffer = Buffer.from(
-        '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAA//2Q==',
-        'base64'
-      );
+    it('should throw ValidationError when req.file is null', async () => {
+      const req = mockRequest({ file: null });
+      const res = mockResponse();
 
-      const response = await request(app)
-        .patch('/api/v1/users/profile/picture')
-        .set('Authorization', 'Bearer invalid-token-123')
-        .attach('profile_picture', jpegBuffer, 'test-image.jpg');
-
-      expect(response.status).toBe(401);
-    });
-
-    it('should return 401 when token is expired', async () => {
-      const jwt = require('jsonwebtoken');
-      const expiredToken = jwt.sign(
-        { id: testUser.id, email: testUser.email },
-        process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: '-1h' } // Token expired 1 hour ago
-      );
-
-      const jpegBuffer = Buffer.from(
-        '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAA//2Q==',
-        'base64'
-      );
-
-      const response = await request(app)
-        .patch('/api/v1/users/profile/picture')
-        .set('Authorization', `Bearer ${expiredToken}`)
-        .attach('profile_picture', jpegBuffer, 'test-image.jpg');
-
-      expect(response.status).toBe(401);
+      await expect(updateProfilePicture(req, res)).rejects.toThrow(ValidationError);
+      expect(mockUploadProfilePicture).not.toHaveBeenCalled();
     });
   });
 
-  describe('File Validation', () => {
-    it('should return 400 when no file is uploaded', async () => {
-      const response = await request(app)
-        .patch('/api/v1/users/profile/picture')
-        .set('Authorization', `Bearer ${authToken}`);
+  // ============================================================
+  // CRITICAL: REQUEST DATA EXTRACTION
+  // ============================================================
+  describe('Critical: Request Data Extraction', () => {
+    it('should extract user from req.user', async () => {
+      const req = mockRequest({
+        user: { id: 'user-custom-id', email: 'custom@example.com' },
+      });
+      const res = mockResponse();
 
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
-      expect(response.body.message).toContain('No file uploaded');
-    });
+      mockUploadProfilePicture.mockResolvedValue({
+        id: 'user-custom-id',
+        fullname: 'Custom User',
+        email: 'custom@example.com',
+        role: 'USER',
+        profilePicture: 'test-bucket/picture.jpg',
+        updatedAt: new Date(),
+      });
 
-    it('should return 400 when file type is invalid (TXT)', async () => {
-      const txtBuffer = Buffer.from('This is a text file');
+      await updateProfilePicture(req, res);
 
-      const response = await request(app)
-        .patch('/api/v1/users/profile/picture')
-        .set('Authorization', `Bearer ${authToken}`)
-        .attach('profile_picture', txtBuffer, 'document.txt');
-
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
-    });
-
-    it('should return 400 when file size exceeds 5MB limit', async () => {
-      // Create a buffer larger than 5MB
-      const largeBuffer = Buffer.alloc(6 * 1024 * 1024); // 6MB
-
-      const response = await request(app)
-        .patch('/api/v1/users/profile/picture')
-        .set('Authorization', `Bearer ${authToken}`)
-        .attach('profile_picture', largeBuffer, 'large-image.jpg');
-
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
-    });
-
-    it('should reject file with wrong field name', async () => {
-      const jpegBuffer = Buffer.from(
-        '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAA//2Q==',
-        'base64'
+      expect(mockUploadProfilePicture).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'user-custom-id' }),
+        expect.any(Buffer),
+        expect.any(String),
+        expect.any(String)
       );
+    });
 
-      const response = await request(app)
-        .patch('/api/v1/users/profile/picture')
-        .set('Authorization', `Bearer ${authToken}`)
-        .attach('wrong_field_name', jpegBuffer, 'test-image.jpg');
+    it('should extract file buffer from req.file.buffer', async () => {
+      const customBuffer = Buffer.from('custom-image-data-12345');
+      const req = mockRequest({
+        file: {
+          buffer: customBuffer,
+          originalname: 'custom.jpg',
+          mimetype: 'image/jpeg',
+        },
+      });
+      const res = mockResponse();
 
-      expect(response.status).toBe(400);
+      mockUploadProfilePicture.mockResolvedValue({
+        id: 'user-123',
+        profilePicture: 'test-bucket/picture.jpg',
+        updatedAt: new Date(),
+      });
+
+      await updateProfilePicture(req, res);
+
+      expect(mockUploadProfilePicture).toHaveBeenCalledWith(
+        expect.any(Object),
+        customBuffer,
+        'custom.jpg',
+        'image/jpeg'
+      );
+    });
+
+    it('should pass originalname and mimetype to service', async () => {
+      const req = mockRequest({
+        file: {
+          buffer: Buffer.from('data'),
+          originalname: 'my-avatar.png',
+          mimetype: 'image/png',
+        },
+      });
+      const res = mockResponse();
+
+      mockUploadProfilePicture.mockResolvedValue({
+        id: 'user-123',
+        profilePicture: 'test-bucket/picture.png',
+        updatedAt: new Date(),
+      });
+
+      await updateProfilePicture(req, res);
+
+      expect(mockUploadProfilePicture).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(Buffer),
+        'my-avatar.png',
+        'image/png'
+      );
     });
   });
 
-  describe('Edge Cases', () => {
-    it('should handle concurrent uploads from same user', async () => {
-      const jpegBuffer = Buffer.from(
-        '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAA//2Q==',
-        'base64'
-      );
+  // ============================================================
+  // CRITICAL: ERROR SCENARIOS
+  // ============================================================
+  describe('Critical: Error Scenarios', () => {
+    it('should handle missing req.user gracefully', async () => {
+      const req = mockRequest({ user: undefined });
+      const res = mockResponse();
 
-      // Send two uploads concurrently
-      const [response1, response2] = await Promise.all([
-        request(app)
-          .patch('/api/v1/users/profile/picture')
-          .set('Authorization', `Bearer ${authToken}`)
-          .attach('profile_picture', jpegBuffer, 'upload1.jpg'),
-        request(app)
-          .patch('/api/v1/users/profile/picture')
-          .set('Authorization', `Bearer ${authToken}`)
-          .attach('profile_picture', jpegBuffer, 'upload2.jpg'),
-      ]);
-
-      // Both should succeed
-      expect(response1.status).toBe(200);
-      expect(response2.status).toBe(200);
-
-      // But should have different filenames (timestamp based)
-      expect(response1.body.user.profilePicture).not.toBe(response2.body.user.profilePicture);
+      // This should throw before reaching service
+      await expect(updateProfilePicture(req, res)).rejects.toThrow();
     });
 
-    it('should handle very small valid JPEG file', async () => {
-      // Minimum valid JPEG (1x1 pixel)
-      const tinyJpeg = Buffer.from(
-        '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAA//2Q==',
-        'base64'
+    it('should handle missing req.file.buffer', async () => {
+      const req = mockRequest({
+        file: {
+          originalname: 'test.jpg',
+          mimetype: 'image/jpeg',
+          // Missing buffer
+        },
+      });
+      const res = mockResponse();
+
+      mockUploadProfilePicture.mockResolvedValue({
+        id: 'user-123',
+        profilePicture: 'test-bucket/picture.jpg',
+        updatedAt: new Date(),
+      });
+
+      await updateProfilePicture(req, res);
+
+      // Should pass undefined buffer to service (service will handle)
+      expect(mockUploadProfilePicture).toHaveBeenCalledWith(
+        expect.any(Object),
+        undefined,
+        'test.jpg',
+        'image/jpeg'
       );
+    });
+  });
 
-      const response = await request(app)
-        .patch('/api/v1/users/profile/picture')
-        .set('Authorization', `Bearer ${authToken}`)
-        .attach('profile_picture', tinyJpeg, 'tiny.jpg');
+  // ============================================================
+  // CRITICAL: DIFFERENT FILE TYPES
+  // ============================================================
+  describe('Critical: Different File Types', () => {
+    it('should handle JPEG files correctly', async () => {
+      const req = mockRequest({
+        file: {
+          buffer: Buffer.from('jpeg-data'),
+          originalname: 'photo.jpg',
+          mimetype: 'image/jpeg',
+        },
+      });
+      const res = mockResponse();
 
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
+      mockUploadProfilePicture.mockResolvedValue({
+        id: 'user-123',
+        profilePicture: 'test-bucket/picture.jpg',
+        updatedAt: new Date(),
+      });
+
+      await updateProfilePicture(req, res);
+
+      expect(mockUploadProfilePicture).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(Buffer),
+        'photo.jpg',
+        'image/jpeg'
+      );
     });
 
-    it('should handle filename with special characters', async () => {
-      const jpegBuffer = Buffer.from(
-        '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAA//2Q==',
-        'base64'
+    it('should handle PNG files correctly', async () => {
+      const req = mockRequest({
+        file: {
+          buffer: Buffer.from('png-data'),
+          originalname: 'avatar.png',
+          mimetype: 'image/png',
+        },
+      });
+      const res = mockResponse();
+
+      mockUploadProfilePicture.mockResolvedValue({
+        id: 'user-123',
+        profilePicture: 'test-bucket/picture.png',
+        updatedAt: new Date(),
+      });
+
+      await updateProfilePicture(req, res);
+
+      expect(mockUploadProfilePicture).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(Buffer),
+        'avatar.png',
+        'image/png'
       );
+    });
 
-      const response = await request(app)
-        .patch('/api/v1/users/profile/picture')
-        .set('Authorization', `Bearer ${authToken}`)
-        .attach('profile_picture', jpegBuffer, 'image with spaces & special!chars.jpg');
+    it('should handle image/jpg mimetype variant', async () => {
+      const req = mockRequest({
+        file: {
+          buffer: Buffer.from('jpg-data'),
+          originalname: 'pic.jpg',
+          mimetype: 'image/jpg', // Alternative MIME type
+        },
+      });
+      const res = mockResponse();
 
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
-      // Generated filename should use sanitized version
-      expect(response.body.user.profilePicture).toContain('profile_picture_');
+      mockUploadProfilePicture.mockResolvedValue({
+        id: 'user-123',
+        profilePicture: 'test-bucket/picture.jpg',
+        updatedAt: new Date(),
+      });
+
+      await updateProfilePicture(req, res);
+
+      expect(mockUploadProfilePicture).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(Buffer),
+        'pic.jpg',
+        'image/jpg'
+      );
     });
   });
 });

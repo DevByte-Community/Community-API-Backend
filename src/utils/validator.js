@@ -67,10 +67,17 @@ const resetPasswordSchema = Joi.object({
   }),
 });
 
+// Here i define validate schemas for updating user profile 
+const updateProfileSchema = Joi.object({
+  fullname: Joi.string().min(3).optional(),
+  email: Joi.string().email().optional(),
+}).min(1); // At least one field must be provided
+
 module.exports = {
   signupSchema,
   signinSchema,
   forgotPasswordSchema,
   verifyOtpSchema,
   resetPasswordSchema,
+  updateProfileSchema,
 };
