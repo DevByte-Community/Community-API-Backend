@@ -5,7 +5,6 @@ jest.mock('../../services/userService', () => ({
   uploadProfilePicture: mockUploadProfilePicture,
 }));
 
-
 // Mock logger
 jest.mock('../../utils/logger', () => {
   return jest.fn(() => ({
@@ -21,7 +20,7 @@ jest.mock('../../middleware/errorHandler', () => ({
 }));
 
 // Import dependencies after mocks
-const { updateProfilePicture, updateProfile } = require('../../controllers/userController');
+const { updateProfilePicture } = require('../../controllers/userController');
 const { ValidationError } = require('../../utils/customErrors');
 
 // Helper to create mock request object
@@ -321,5 +320,3 @@ describe('UserController - updateProfilePicture', () => {
     });
   });
 });
-
-
