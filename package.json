@@ -12,7 +12,7 @@
     "lint-staged": "lint-staged",
     "precommit": "npm run -s lint-staged && npm run -s test",
     "format": "prettier --write .",
-    "db:start": "docker-compose up -d postgres",
+    "db:start": "docker-compose up -d postgres", 
     "db:stop": "docker-compose down",
     "prepare": "husky install",
     "migrate": "sequelize-cli db:migrate",
