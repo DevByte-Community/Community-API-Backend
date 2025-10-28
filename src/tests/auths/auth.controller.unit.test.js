@@ -49,7 +49,7 @@ const authController = require('../../controllers/authController');
 
 // Helper for mock response
 const mockResponse = () => {
-  const res = {}; 
+  const res = {};
   res.status = jest.fn().mockReturnValue(res);
   res.json = jest.fn().mockReturnValue(res);
   return res;
@@ -150,7 +150,7 @@ describe('AuthController', () => {
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
         success: true,
-        message: 'An OTP has been sent your email successfully',
+        message: 'An OTP has been sent to your email successfully',
       });
     });
 
@@ -179,7 +179,7 @@ describe('AuthController', () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
           success: true,
-          message: 'An OTP has been sent your email successfully',
+          message: 'An OTP has been sent to your email successfully',
         })
       );
     });

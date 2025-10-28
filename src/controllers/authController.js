@@ -68,16 +68,13 @@ class AuthController {
         // generate & save OTP, then send email
         const otp = generateOtp();
         await saveOtpForEmail(email, otp);
-        await sendOtpEmail(email, otp).catch((err) => {
-          // sending failure should not reveal to client — log it
-          logger.error(`Failed to send OTP to ${email} - ${err.message}`);
-        });
+        await sendOtpEmail(email, otp);
       }
 
       logger.info(`Forgot password requested for ${email}`);
       return res.status(200).json({
         success: true,
-        message: 'An OTP has been sent your email successfully',
+        message: 'An OTP has been sent to your email successfully',
       });
     } catch (err) {
       logger.error(`forgotPassword error for ${email} - ${err.message}`);

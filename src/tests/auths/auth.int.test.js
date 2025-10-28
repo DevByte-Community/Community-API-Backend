@@ -165,7 +165,7 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('success', true);
-      expect(res.body.message).toMatch('An OTP has been sent your email successfully');
+      expect(res.body.message).toMatch('An OTP has been sent to your email successfully');
       expect(otpStore[testUserEmail]).toBeDefined();
       expect(otpStore[testUserEmail]).toHaveLength(6);
     });
