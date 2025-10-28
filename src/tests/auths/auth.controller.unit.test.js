@@ -49,7 +49,7 @@ const authController = require('../../controllers/authController');
 
 // Helper for mock response
 const mockResponse = () => {
-  const res = {};
+  const res = {}; 
   res.status = jest.fn().mockReturnValue(res);
   res.json = jest.fn().mockReturnValue(res);
   return res;
