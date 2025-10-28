@@ -4,7 +4,7 @@ const createLogger = require('../utils/logger');
 const crypto = require('crypto');
 const logger = createLogger('OTP_SERVICE');
 
-const OTP_TTL_SECONDS = 10 * 60; // 10 minutes
+const OTP_TTL_SECONDS = 6 * 60; // 10 minutes
 const OTP_LENGTH = 6;
 
 function generateOtp() {
