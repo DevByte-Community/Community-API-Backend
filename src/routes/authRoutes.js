@@ -426,11 +426,6 @@ router.post('/verify-otp', authController.verifyOtp);
  *                 format: email
  *                 description: User's email address
  *                 example: john@example.com
- *               current_password:
- *                 type: string
- *                 format: password
- *                 description: User's current password
- *                 example: oldpassword123
  *               new_password:
  *                 type: string
  *                 format: password

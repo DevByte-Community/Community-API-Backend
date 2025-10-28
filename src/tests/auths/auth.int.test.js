@@ -238,7 +238,6 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
       const newPassword = 'newPassword456';
       const res = await request(app).post('/api/v1/auth/reset-password').send({
         email: testUserEmail,
-        current_password: testUserPassword,
         new_password: newPassword,
       });
 
@@ -253,18 +252,6 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
       expect(signinRes.status).toBe(200);
     });
 
-    it('should return 401 for incorrect current password', async () => {
-      const res = await request(app).post('/api/v1/auth/reset-password').send({
-        email: testUserEmail,
-        current_password: 'wrongPassword',
-        new_password: 'newPassword456',
-      });
-
-      expect(res.status).toBe(401);
-      expect(res.body).toHaveProperty('success', false);
-      expect(res.body.message).toMatch(/Current password is incorrect/i);
-    });
-
     it('should return 400 if required fields are missing', async () => {
       const res = await request(app)
         .post('/api/v1/auth/reset-password')
@@ -277,7 +264,6 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
     it('should return 404 for non-existent email', async () => {
       const res = await request(app).post('/api/v1/auth/reset-password').send({
         email: 'nonexistent@example.com',
-        current_password: 'validPassword123',
         new_password: 'newPassword456',
       });
 

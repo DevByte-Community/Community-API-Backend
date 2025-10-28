@@ -119,12 +119,10 @@ class AuthController {
       if (errorResponse) return res.status(400).json(errorResponse);
 
       const email = _value.email.toLowerCase();
-      const currentPassword = _value.current_password;
       const newPassword = _value.new_password;
 
       await authService.resetPassword({
         email,
-        currentPassword,
         newPassword,
       });
 
