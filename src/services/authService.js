@@ -102,7 +102,7 @@ class AuthService {
   }
 
   // reset password (requires current password verification)
-  async resetPassword({ email, currentPassword, newPassword }) {
+  async resetPassword({ email, newPassword }) {
     const user = await User.findOne({ where: { email } });
     if (!user) {
       logger.info('user not found using');
@@ -111,17 +111,9 @@ class AuthService {
       throw error;
     }
 
-    // Verify current password
-    const passwordMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!passwordMatch) {
-      const error = new Error('Current password is incorrect');
-      error.statusCode = 401;
-      throw error;
-    }
-
     // Hash and update new password
-    const password_hash = await bcrypt.hash(newPassword, SALT_ROUNDS);
-    user.password = password_hash;
+
+    user.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
     await user.save();
     logger.info(`Password reset for ${email}`);
     return true;

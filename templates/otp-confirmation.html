@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Devbyte OTP Confirmation</title>
+  <style>
+      body { font-family: Arial, sans-serif; background: #f9fafb; color: #111; margin: 0; padding: 0; }
+      .container { max-width: 480px; margin: 40px auto; background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+      .brand { text-align: center; font-weight: bold; color: #2563eb; font-size: 1.3rem; margin-bottom: 20px; }
+      .code { font-size: 2rem; text-align: center; font-weight: 700; color: #2563eb; letter-spacing: 6px; margin: 24px 0; }
+      p { text-align: center; color: #555; font-size: 0.95rem; }
+      .footer { text-align: center; color: #999; font-size: 0.8rem; margin-top: 30px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="brand">Devbyte</div>
+  <p>Your OTP code is:</p>
+  <div class="code">{{OTP_CODE}}</div>
+  <p>This code expires in 6 minutes.<br />If you didn’t request this, please ignore this email.</p>
+  <div class="footer">© {{CURRENT_YEAR}} Devbyte. All rights reserved.</div>
+</div>
+</body>
+</html>
