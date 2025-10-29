@@ -22,6 +22,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       name: {
         type: DataTypes.STRING,
+        unique: true,
         allowNull: false,
       },
       description: DataTypes.TEXT,
@@ -31,6 +32,13 @@ module.exports = (sequelize, DataTypes) => {
       modelName: 'Skill',
       tableName: 'Skills',
       timestamps: true,
+      indexes: [
+        {
+          // This creates a case-insensitive unique index
+          unique: true,
+          fields: [sequelize.fn("lower", sequelize.col("name"))]
+        }
+      ]
     }
   );
 
