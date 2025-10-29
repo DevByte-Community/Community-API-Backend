@@ -13,7 +13,7 @@ dns.setDefaultResultOrder('ipv4first');
 // Configure Gmail Transporter
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
+  // port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
   secure: false, // use STARTTLS
   auth: {
     user: process.env.SMTP_USER,
@@ -30,9 +30,9 @@ const transporter = nodemailer.createTransport({
 // Verify the connection on startup
 transporter.verify((error, success) => {
   if (error) {
-    logger.error(`❌ Gmail SMTP connection failed: ${error.message}`);
+    logger.error(`❌ SMTP connection failed: ${error.message}`);
   } else {
-    logger.info(`✅ Gmail SMTP connection successful and ready to send mail: ${success}`);
+    logger.info(`✅ SMTP connection successful and ready to send mail: ${success}`);
   }
 });
 
