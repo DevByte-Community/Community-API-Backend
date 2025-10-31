@@ -98,7 +98,6 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
         .send({ fullname: 'John Doe', email: 'john@yahoo.com', password: 'password123' });
 
       expect(res.status).toBe(201);
-      expect(res.body).toHaveProperty('access_token');
     });
 
     it('should fail if email already exists', async () => {

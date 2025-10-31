@@ -49,40 +49,6 @@ const router = express.Router();
  *                 message:
  *                   type: string
  *                   example: User registered successfully
- *                 access_token:
- *                   type: string
- *                   description: JWT access token for authentication
- *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
- *                 refresh_token:
- *                   type: string
- *                   description: JWT refresh token for renewing access token
- *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
- *                 user:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                       format: uuid
- *                       example: 123e4567-e89b-12d3-a456-426614174000
- *                     fullname:
- *                       type: string
- *                       example: John Doe
- *                     email:
- *                       type: string
- *                       example: john@example.com
- *                     roles:
- *                       type: array
- *                       items:
- *                         type: string
- *                       example: ["USER"]
- *                     profilePicture:
- *                       type: string
- *                       nullable: true
- *                       example: null
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                       example: 2025-10-12T12:00:00.000Z
  *       400:
  *         description: Bad request - Validation errors
  *         content:

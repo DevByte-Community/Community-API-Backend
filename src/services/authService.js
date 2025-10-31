@@ -29,16 +29,7 @@ class AuthService {
       return {
         message: 'User registered successfully',
         success: true,
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        user: {
-          id: user.id,
-          fullname: user.fullname,
-          email: user.email,
-          roles: user.roles,
-          profilePicture: user.profilePicture,
-          createdAt: user.createdAt,
-        },
+        tokens: { accessToken, refreshToken },
       };
     } catch (err) {
       if (err instanceof UniqueConstraintError) {

@@ -24,6 +24,13 @@ jest.mock('../../utils/index', () => ({
   validate: jest.fn(),
 }));
 
+const mockSetAuthCookies = jest.fn();
+jest.mock('../../utils/cookies', () => ({
+  setAuthCookies: mockSetAuthCookies,
+  clearAuthCookies: jest.fn(),
+  cfg: { ACCESS_COOKIE: 'access_token' },
+}));
+
 const mockAuthService = {
   signup: jest.fn(),
   signin: jest.fn(),
@@ -52,6 +59,7 @@ const mockResponse = () => {
   const res = {};
   res.status = jest.fn().mockReturnValue(res);
   res.json = jest.fn().mockReturnValue(res);
+  res.cookie = jest.fn().mockReturnValue(res);
   return res;
 };
 
@@ -72,7 +80,11 @@ describe('AuthController', () => {
         _value: { fullname: 'John Doe', email: 'john@example.com', password: 'password123' },
         errorResponse: null,
       });
-      authService.signup.mockResolvedValue({ success: true, message: 'ok' });
+      authService.signup.mockResolvedValue({
+        success: true,
+        message: 'ok',
+        tokens: { accessToken: 'a', refreshToken: 'r' },
+      });
 
       await authController.signup(req, res);
 
