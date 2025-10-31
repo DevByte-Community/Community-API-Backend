@@ -86,7 +86,7 @@ describe('AuthService', () => {
 
       expect(User.findOne).toHaveBeenCalledWith({ where: { email: 'john@example.com' } });
       expect(bcrypt.compare).toHaveBeenCalledWith('password123', 'hashed_pw');
-      expect(result).toHaveProperty('access_token', 'acc');
+      expect(result).toHaveProperty('success', true);
     });
 
     it('should throw error if user not found', async () => {

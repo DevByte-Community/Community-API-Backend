@@ -49,10 +49,14 @@ class AuthController {
       if (errorResponse) return res.status(400).json(errorResponse);
 
       const result = await authService.signin(_value);
+      setAuthCookies(res, result.tokens);
 
       logger.info(`Signin success for email=${_value.email}`);
 
-      return res.status(200).json(result);
+      return res.status(200).json({
+        message: result.message,
+        success: result.success,
+      });
     } catch (err) {
       logger.error(`Signin failed for email=${req.body.email} - ${err.message}`);
       const status = err.statusCode || 500;

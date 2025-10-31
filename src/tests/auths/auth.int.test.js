@@ -133,7 +133,7 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
         .send({ email: 'john@yahoo.com', password: 'password123' });
 
       expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty('access_token');
+      expect(res.body).toHaveProperty('message');
     });
 
     it('should fail with wrong email', async () => {
