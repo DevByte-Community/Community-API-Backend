@@ -1,6 +1,5 @@
 // controllers/authController.js
 const authService = require('../services/authService');
-const createLogger = require('../utils/logger');
 const Validator = require('../utils/index');
 const {
   signupSchema,
@@ -16,6 +15,8 @@ const {
   deleteOtpForEmail,
 } = require('../services/otpService');
 const { sendOtpEmail } = require('../services/emailService');
+const { setAuthCookies } = require('../utils/cookies');
+const createLogger = require('../utils/logger');
 
 const logger = createLogger('AUTH_CONTROLLER');
 
@@ -27,9 +28,13 @@ class AuthController {
       if (errorResponse) return res.status(400).json(errorResponse);
 
       const result = await authService.signup(_value);
+      setAuthCookies(res, result.tokens);
 
       logger.info(`Signup success for email=${_value.email}`);
-      return res.status(201).json(result);
+      return res.status(201).json({
+        message: result.message,
+        success: result.success,
+      });
     } catch (err) {
       logger.error(`Signup failed for email=${req.body.email} - ${err.message}`);
       const status = err.statusCode || 500;
@@ -44,10 +49,14 @@ class AuthController {
       if (errorResponse) return res.status(400).json(errorResponse);
 
       const result = await authService.signin(_value);
+      setAuthCookies(res, result.tokens);
 
       logger.info(`Signin success for email=${_value.email}`);
 
-      return res.status(200).json(result);
+      return res.status(200).json({
+        message: result.message,
+        success: result.success,
+      });
     } catch (err) {
       logger.error(`Signin failed for email=${req.body.email} - ${err.message}`);
       const status = err.statusCode || 500;
