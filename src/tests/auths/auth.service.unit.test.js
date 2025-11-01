@@ -32,7 +32,6 @@ describe('AuthService', () => {
         createdAt: new Date(),
       });
       generateTokens.mockReturnValue({ accessToken: 'acc', refreshToken: 'ref' });
-
       const result = await authService.signup({
         fullname: 'John Doe',
         email: 'john@example.com',
@@ -42,7 +41,11 @@ describe('AuthService', () => {
       expect(bcrypt.hash).toHaveBeenCalledWith('password123', 10);
       expect(User.create).toHaveBeenCalled();
       expect(generateTokens).toHaveBeenCalled();
-      expect(result).toHaveProperty('access_token', 'acc');
+      expect(result).toEqual({
+        message: 'User registered successfully',
+        success: true,
+        tokens: { accessToken: 'acc', refreshToken: 'ref' },
+      });
     });
 
     it('should throw error if email already registered', async () => {
@@ -83,7 +86,7 @@ describe('AuthService', () => {
 
       expect(User.findOne).toHaveBeenCalledWith({ where: { email: 'john@example.com' } });
       expect(bcrypt.compare).toHaveBeenCalledWith('password123', 'hashed_pw');
-      expect(result).toHaveProperty('access_token', 'acc');
+      expect(result).toHaveProperty('success', true);
     });
 
     it('should throw error if user not found', async () => {

@@ -25,5 +25,13 @@ class Validator {
   }
 }
 
+const toList = (v, d = []) =>
+  (v || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .concat(d);
+
 module.exports = Validator;
 module.exports.customErrors = customErrors;
+module.exports.toList = toList;
