@@ -13,7 +13,7 @@ dns.setDefaultResultOrder('ipv4first');
 // Configure Gmail Transporter
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
-  // port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
+  port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
   secure: false, // use STARTTLS
   auth: {
     user: process.env.SMTP_USER,
