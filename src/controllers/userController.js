@@ -53,9 +53,23 @@ const updateProfile = asyncHandler(async (req, res) => {
   }
 });
 
-
+const getProfile = asyncHandler(async (req, res) => {
+  try {
+    logger.info(`Get Profile successful for userId=${req.user.id}`);
+    return res.status(200).json({
+      success: true,
+      message: 'Get Profile successfully',
+      user: { ...req.user.dataValues, skills: [] },
+    });
+  } catch (err) {
+    logger.error(`get user profile failed for userId=${req.user?.id} - ${err.message}`);
+    const status = err.statusCode || 500;
+    return res.status(status).json({ success: false, message: err.message });
+  }
+});
 
 module.exports = {
   updateProfilePicture,
-  updateProfile, 
+  updateProfile,
+  getProfile,
 };

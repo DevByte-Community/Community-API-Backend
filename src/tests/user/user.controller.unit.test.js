@@ -40,7 +40,11 @@ jest.mock('../../utils/index', () => ({
 // -------------------------------------------------------
 // STEP 5: Import controller after mocks
 // -------------------------------------------------------
-const { updateProfilePicture, updateProfile } = require('../../controllers/userController');
+const {
+  updateProfilePicture,
+  updateProfile,
+  getProfile,
+} = require('../../controllers/userController');
 const { ValidationError } = require('../../utils/customErrors');
 
 // -------------------------------------------------------
@@ -195,6 +199,57 @@ describe('UserController', () => {
         success: false,
         message: 'User not found',
       });
+    });
+  });
+
+  // ======================================================
+  // getProfile TESTS (new)
+  // ======================================================
+  describe('getProfile', () => {
+    it('returns 200 with user data + skills[]', async () => {
+      // controller uses req.user.dataValues
+      const req = mockRequest({
+        user: {
+          id: 'user-123',
+          dataValues: {
+            id: 'user-123',
+            email: 'test@example.com',
+            fullname: 'John',
+          },
+        },
+      });
+      const res = mockResponse();
+
+      await getProfile(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Get Profile successfully',
+        user: expect.objectContaining({
+          id: 'user-123',
+          email: 'test@example.com',
+          fullname: 'John',
+          skills: [],
+        }),
+      });
+    });
+
+    it('returns 500 when an exception is raised (e.g., missing req.user)', async () => {
+      // Make req.user undefined so logger.info(req.user.id) throws
+      const req = mockRequest({ user: undefined });
+      const res = mockResponse();
+
+      await getProfile(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          // message will be a TypeError about reading 'id' of undefined; assert presence only
+          message: expect.any(String),
+        })
+      );
     });
   });
 });
