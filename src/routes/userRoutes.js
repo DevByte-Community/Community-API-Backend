@@ -1,5 +1,9 @@
 const express = require('express');
-const { updateProfilePicture, updateProfile } = require('../controllers/userController');
+const {
+  updateProfilePicture,
+  updateProfile,
+  getProfile,
+} = require('../controllers/userController');
 const { authenticateJWT } = require('../middleware/authMiddleware');
 const { handleMulterUpload } = require('../middleware/uploadMiddleware');
 
@@ -247,6 +251,81 @@ router.patch(
  */
 router.patch('/profile', authenticateJWT, updateProfile);
 
-
+/**
+ * @swagger
+ * /api/v1/users/profile:
+ *   get:
+ *     summary: Get user profile (id, fullname, role, email...)
+ *     description: Get user's profile details such as id, fullname, roles, skills and email address. The endpoint validates access token.
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Get profile successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Profile updated successfully
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                       example: 123e4567-e89b-12d3-a456-426614174000
+ *                     fullname:
+ *                       type: string
+ *                       example: Jane Doe
+ *                     email:
+ *                       type: string
+ *                       example: jane.doe@example.com
+ *                     role:
+ *                       type: string
+ *                       example: USER
+ *                     skills:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                         example: "skill-uuid-123"
+ *                       example: [ "skill-1", "skill-2", "skill-3" ]
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: 2025-10-14T12:00:00.000Z
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: 2025-10-14T12:00:00.000Z
+ *       400:
+ *         description: Bad request - Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Invalid input. Please provide a valid fullname or email.
+ *       401:
+ *         description: Unauthorized - Missing or invalid JWT token
+ *       404:
+ *         description: User not found
+ *       409:
+ *         description: Conflict - Email already in use
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/profile', authenticateJWT, getProfile);
 
 module.exports = router;
