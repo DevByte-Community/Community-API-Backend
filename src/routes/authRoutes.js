@@ -437,6 +437,60 @@ router.post('/verify-otp', authController.verifyOtp);
  */
 router.post('/reset-password', authController.resetPassword);
 
-// router.post('/refresh-token', authController.refreshToken);
+/**
+ * @swagger
+ * /api/v1/auth/signout:
+ *   post:
+ *     summary: Sign out the currently authenticated user
+ *     description: |
+ *       Logs out the user by clearing the `accessToken` and `refreshToken` cookies.
+ *       This endpoint requires that the user is already authenticated (has valid cookies set).
+ *       On success, it clears authentication cookies and returns a confirmation message.
+ *     tags: [Authentication]
+ *     security:
+ *       - cookieAuth: []   # Indicates authentication is via cookies
+ *     responses:
+ *       200:
+ *         description: User signed out successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: User signed out successfully
+ *       401:
+ *         description: Unauthorized - User not authenticated or invalid token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Missing or invalid authentication token
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ */
+router.post('/signout', authController.signOut);
+
 
 module.exports = router;
