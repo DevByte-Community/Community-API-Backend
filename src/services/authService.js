@@ -5,7 +5,7 @@ const { User } = require('../models');
 const { generateTokens } = require('../utils/jwt');
 const createLogger = require('../utils/logger');
 
-const logger = createLogger('MODULE:AUTH_SERVICE');
+const logger = createLogger('AUTH_SERVICE');
 
 const SALT_ROUNDS = 10;
 
@@ -29,15 +29,7 @@ class AuthService {
       return {
         message: 'User registered successfully',
         success: true,
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        user: {
-          id: user.id,
-          fullname: user.fullname,
-          email: user.email,
-          roles: user.roles,
-          created_at: user.createdAt,
-        },
+        tokens: { accessToken, refreshToken },
       };
     } catch (err) {
       if (err instanceof UniqueConstraintError) {
@@ -76,15 +68,7 @@ class AuthService {
       return {
         message: 'User signed in successfully',
         success: true,
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        user: {
-          id: user.id,
-          fullname: user.fullname,
-          email: user.email,
-          roles: user.roles,
-          created_at: user.createdAt,
-        },
+        tokens: { accessToken, refreshToken },
       };
     } catch (err) {
       logger.error(`Signin failed for email=${email} - ${err.message}`);
@@ -94,47 +78,24 @@ class AuthService {
     }
   }
 
-  // update password (hash then update)
-  async updatePasswordByEmail(email, newPassword) {
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
-      const error = new Error('User not found');
-      error.statusCode = 404;
-      throw error;
-    }
-    const password_hash = await bcrypt.hash(newPassword, SALT_ROUNDS);
-    user.password = password_hash;
-    await user.save();
-    logger.info(`Password updated for ${email}`);
-    return true;
-  }
-
   // find user by email (used by forgot-password)
   async findUserByEmail(email) {
     return User.findOne({ where: { email } });
   }
 
   // reset password (requires current password verification)
-  async resetPassword({ email, currentPassword, newPassword }) {
+  async resetPassword({ email, newPassword }) {
     const user = await User.findOne({ where: { email } });
     if (!user) {
-      logger.info('user not found using email: ', email);
+      logger.info('user not found using');
       const error = new Error('User not found');
       error.statusCode = 404;
       throw error;
     }
 
-    // Verify current password
-    const passwordMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!passwordMatch) {
-      const error = new Error('Current password is incorrect');
-      error.statusCode = 401;
-      throw error;
-    }
-
     // Hash and update new password
-    const password_hash = await bcrypt.hash(newPassword, SALT_ROUNDS);
-    user.password = password_hash;
+
+    user.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
     await user.save();
     logger.info(`Password reset for ${email}`);
     return true;

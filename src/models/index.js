@@ -3,23 +3,27 @@
 const fs = require('fs');
 const path = require('path');
 const Sequelize = require('sequelize');
-const process = require('process');
 const basename = path.basename(__filename);
 const env = process.env.NODE_ENV || 'development';
 const config = require(path.join(__dirname, '/../../config/config.js'))[env];
 const db = {};
 
-// console.log('Database Config:', config);
+const createLogger = require('../utils/logger');
+const logger = createLogger('MODELS');
 
 let sequelize;
 if (config.use_env_variable) {
+  logger.info(
+    'Using connection string:',
+    `${process.env[config.use_env_variable].slice(0, 10)}#####`
+  );
   sequelize = new Sequelize(process.env[config.use_env_variable], config);
 } else {
   sequelize = new Sequelize(config.database, config.username, config.password, {
-    // Pass config object directly
     host: config.host,
     port: config.port,
     dialect: config.dialect,
+    logging: config.logging !== undefined ? config.logging : false, // Disable SQL query logging
   });
 }
 

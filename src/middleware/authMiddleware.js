@@ -1,24 +1,109 @@
 // middleware/authMiddleware.js
 const passport = require('passport');
-const { Strategy: JwtStrategy, ExtractJwt } = require('passport-jwt');
+const { Strategy: JwtStrategy } = require('passport-jwt');
+const { UnauthorizedError } = require('../utils/customErrors');
+const { User } = require('../models');
+const { cfg } = require('../utils/cookies');
 
-const User = require('../models/users.model');
+/**
+ * Custom extractor: prefer HttpOnly cookie, fall back to Authorization header.
+ */
+function extractAccessToken(req) {
+  // 1) Cookie (preferred)
+  const cookieToken = req?.cookies?.[cfg.ACCESS_COOKIE];
+  if (cookieToken && typeof cookieToken === 'string' && cookieToken.trim() !== '') {
+    return cookieToken;
+  }
 
-const opts = {
-  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+  // 2) Authorization: Bearer <token>
+  const auth = req?.headers?.authorization || '';
+  if (auth.startsWith('Bearer ')) {
+    return auth.slice('Bearer '.length).trim();
+  }
+
+  return null;
+}
+
+const jwtOpts = {
+  jwtFromRequest: extractAccessToken,
   secretOrKey: process.env.ACCESS_TOKEN_SECRET,
+  passReqToCallback: false,
 };
 
 passport.use(
-  new JwtStrategy(opts, async (jwt_payload, done) => {
+  new JwtStrategy(jwtOpts, async (jwtPayload, done) => {
     try {
-      const user = await User.findByPk(jwt_payload.id);
+      const userId = jwtPayload?.sub || jwtPayload?.id || jwtPayload?.userId;
+      if (!userId) {
+        return done(null, false, { name: 'JsonWebTokenError', message: 'Missing subject (sub)' });
+      }
+
+      const user = await User.findByPk(userId);
       if (user) return done(null, user);
-      return done(null, false);
+      return done(null, false, { message: 'User not found' });
     } catch (err) {
       return done(err, false);
     }
   })
 );
 
+/**
+ * Custom JWT authentication middleware with enhanced error messages
+ * Wraps passport.authenticate to provide better error feedback
+ */
+const authenticateJWT = (req, res, next) => {
+  const token = extractAccessToken(req);
+  if (!token) {
+    return next(
+      new UnauthorizedError(
+        `Authentication required. Provide a valid token via HttpOnly cookie "${cfg.ACCESS_COOKIE}" or the Authorization header.`
+      )
+    );
+  }
+
+  // Use passport to validate the token
+  passport.authenticate('jwt', { session: false }, (err, user, info) => {
+    if (err) {
+      return next(new UnauthorizedError('Authentication error occurred'));
+    }
+
+    if (!user) {
+      // Provide specific error message based on the reason
+      if (info && info.name === 'TokenExpiredError') {
+        return next(new UnauthorizedError('Token has expired. Please login again.'));
+      }
+      if (info && info.name === 'JsonWebTokenError') {
+        return next(new UnauthorizedError('Invalid token. Please provide a valid JWT token.'));
+      }
+      if (info && info.message === 'User not found') {
+        return next(new UnauthorizedError('User associated with this token no longer exists.'));
+      }
+      return next(new UnauthorizedError('Authentication failed. Invalid or expired token.'));
+    }
+
+    // Attach user to request
+    req.user = user;
+    next();
+  })(req, res, next);
+};
+
+/**
+ * Role guards
+ */
+const requireRole =
+  (...requiredRoles) =>
+  (req, _res, next) => {
+    if (!req.user) {
+      return next(new UnauthorizedError('Not authenticated.'));
+    }
+    const userRoles = Array.isArray(req.user.roles) ? req.user.roles : [];
+    const ok = requiredRoles.every((r) => userRoles.includes(r));
+    if (!ok) {
+      return next(new UnauthorizedError('Insufficient permissions.'));
+    }
+    return next();
+  };
+
 module.exports = passport;
+module.exports.authenticateJWT = authenticateJWT;
+module.exports.requireRole = requireRole;

@@ -1,5 +1,7 @@
 const nodemailer = require('nodemailer');
 const dns = require('dns');
+const fs = require('fs');
+const path = require('path');
 const createLogger = require('../utils/logger');
 require('dotenv').config();
 
@@ -10,35 +12,39 @@ dns.setDefaultResultOrder('ipv4first');
 
 // Configure Gmail Transporter
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  host: process.env.SMTP_HOST,
   port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
-  secure: false, // use TLS
+  secure: false, // use STARTTLS
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
   tls: {
     rejectUnauthorized: false,
+    ciphers: 'SSLv3', // Some hosts require this
   },
+  requireTLS: true, // Force STARTTLS
+  connectionTimeout: 10000,
 });
 
 // Verify the connection on startup
 transporter.verify((error, success) => {
   if (error) {
-    logger.error(`❌ Gmail SMTP connection failed: ${error.message}`);
+    logger.error(`❌ SMTP connection failed: ${error.message}`);
   } else {
-    logger.info(`✅ Gmail SMTP connection successful and ready to send mail: ${success}`);
+    logger.info(`✅ SMTP connection successful and ready to send mail: ${success}`);
   }
 });
 
 async function sendOtpEmail(to, otp) {
+  const templatePath = path.join(process.cwd(), 'templates', 'otp-confirmation.html');
+  let html = fs.readFileSync(templatePath, 'utf8');
+  html = html.replace('{{OTP_CODE}}', otp).replace('{{CURRENT_YEAR}}', new Date().getFullYear());
   const mailOptions = {
-    from: process.env.EMAIL_FROM || 'no-reply@yourapp.com',
+    from: process.env.EMAIL_FROM,
     to,
     subject: 'Your password reset OTP',
-    text: `Use the following OTP to reset your password. It expires in 10 minutes.\n\nOTP: ${otp}`,
-    html: `<p>Use the following OTP to reset your password. It expires in 10 minutes.</p>
-           <p><b>${otp}</b></p>`,
+    html,
   };
 
   try {

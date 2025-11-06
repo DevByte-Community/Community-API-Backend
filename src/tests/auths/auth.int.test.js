@@ -1,7 +1,6 @@
 // tests/auth.int.test.js
 const request = require('supertest');
 const { GenericContainer } = require('testcontainers');
-const redisClient = require('../../utils/redisClient');
 
 jest.setTimeout(60000);
 
@@ -9,6 +8,7 @@ let postgresContainer;
 let redisContainer;
 let app;
 let db;
+let redisClientModule;
 const testUserEmail = 'john@example.com';
 const testUserPassword = 'validPassword123';
 
@@ -55,6 +55,14 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
     // Set environment variables for Redis
     process.env.REDIS_HOST = redisHost;
     process.env.REDIS_PORT = String(redisPort);
+    process.env.REDIS_URL = `redis://${redisHost}:${redisPort}`;
+
+    // Maintenant qu'on a les bonnes variables d'env, on peut initialiser Redis
+    redisClientModule = require('../../utils/redisClient');
+    redisClientModule.initializeRedisClient(process.env.REDIS_URL);
+
+    // Attendre que Redis soit prêt
+    await redisClientModule.client.connect();
 
     db = require('../../models');
     await db.sequelize.sync({ force: true });
@@ -77,9 +85,9 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
 
   afterAll(async () => {
     if (db && db.sequelize) await db.sequelize.close();
+    if (redisClientModule) await redisClientModule.disconnect();
     if (postgresContainer) await postgresContainer.stop();
     if (redisContainer) await redisContainer.stop();
-    await redisClient.disconnect(); // Close Redis client
     jest.restoreAllMocks(); // Restore any global mocks
   });
 
@@ -90,7 +98,6 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
         .send({ fullname: 'John Doe', email: 'john@yahoo.com', password: 'password123' });
 
       expect(res.status).toBe(201);
-      expect(res.body).toHaveProperty('access_token');
     });
 
     it('should fail if email already exists', async () => {
@@ -126,7 +133,7 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
         .send({ email: 'john@yahoo.com', password: 'password123' });
 
       expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty('access_token');
+      expect(res.body).toHaveProperty('message');
     });
 
     it('should fail with wrong email', async () => {
@@ -157,7 +164,7 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('success', true);
-      expect(res.body.message).toMatch('An OTP has been sent your email successfully');
+      expect(res.body.message).toMatch('An OTP has been sent to your email successfully');
       expect(otpStore[testUserEmail]).toBeDefined();
       expect(otpStore[testUserEmail]).toHaveLength(6);
     });
@@ -230,7 +237,6 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
       const newPassword = 'newPassword456';
       const res = await request(app).post('/api/v1/auth/reset-password').send({
         email: testUserEmail,
-        current_password: testUserPassword,
         new_password: newPassword,
       });
 
@@ -245,18 +251,6 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
       expect(signinRes.status).toBe(200);
     });
 
-    it('should return 401 for incorrect current password', async () => {
-      const res = await request(app).post('/api/v1/auth/reset-password').send({
-        email: testUserEmail,
-        current_password: 'wrongPassword',
-        new_password: 'newPassword456',
-      });
-
-      expect(res.status).toBe(401);
-      expect(res.body).toHaveProperty('success', false);
-      expect(res.body.message).toMatch(/Current password is incorrect/i);
-    });
-
     it('should return 400 if required fields are missing', async () => {
       const res = await request(app)
         .post('/api/v1/auth/reset-password')
@@ -269,7 +263,6 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
     it('should return 404 for non-existent email', async () => {
       const res = await request(app).post('/api/v1/auth/reset-password').send({
         email: 'nonexistent@example.com',
-        current_password: 'validPassword123',
         new_password: 'newPassword456',
       });
 

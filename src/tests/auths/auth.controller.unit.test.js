@@ -24,6 +24,13 @@ jest.mock('../../utils/index', () => ({
   validate: jest.fn(),
 }));
 
+const mockSetAuthCookies = jest.fn();
+jest.mock('../../utils/cookies', () => ({
+  setAuthCookies: mockSetAuthCookies,
+  clearAuthCookies: jest.fn(),
+  cfg: { ACCESS_COOKIE: 'access_token' },
+}));
+
 const mockAuthService = {
   signup: jest.fn(),
   signin: jest.fn(),
@@ -52,6 +59,7 @@ const mockResponse = () => {
   const res = {};
   res.status = jest.fn().mockReturnValue(res);
   res.json = jest.fn().mockReturnValue(res);
+  res.cookie = jest.fn().mockReturnValue(res);
   return res;
 };
 
@@ -72,7 +80,11 @@ describe('AuthController', () => {
         _value: { fullname: 'John Doe', email: 'john@example.com', password: 'password123' },
         errorResponse: null,
       });
-      authService.signup.mockResolvedValue({ success: true, message: 'ok' });
+      authService.signup.mockResolvedValue({
+        success: true,
+        message: 'ok',
+        tokens: { accessToken: 'a', refreshToken: 'r' },
+      });
 
       await authController.signup(req, res);
 
@@ -150,7 +162,7 @@ describe('AuthController', () => {
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
         success: true,
-        message: 'An OTP has been sent your email successfully',
+        message: 'An OTP has been sent to your email successfully',
       });
     });
 
@@ -179,7 +191,7 @@ describe('AuthController', () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
           success: true,
-          message: 'An OTP has been sent your email successfully',
+          message: 'An OTP has been sent to your email successfully',
         })
       );
     });
@@ -305,7 +317,6 @@ describe('AuthController', () => {
       const req = {
         body: {
           email: 'john@example.com',
-          current_password: 'oldPassword123',
           new_password: 'newPassword123',
         },
       };
@@ -314,7 +325,6 @@ describe('AuthController', () => {
       Validator.validate.mockReturnValue({
         _value: {
           email: 'john@example.com',
-          current_password: 'oldPassword123',
           new_password: 'newPassword123',
         },
         errorResponse: null,
@@ -326,7 +336,6 @@ describe('AuthController', () => {
       expect(Validator.validate).toHaveBeenCalledWith(expect.anything(), req.body);
       expect(mockAuthService.resetPassword).toHaveBeenCalledWith({
         email: 'john@example.com',
-        currentPassword: 'oldPassword123',
         newPassword: 'newPassword123',
       });
       expect(res.status).toHaveBeenCalledWith(200);
@@ -340,8 +349,7 @@ describe('AuthController', () => {
       const req = {
         body: {
           email: 'invalid-email',
-          current_password: '',
-          new_password: 'short',
+          new_password: '',
         },
       };
       const res = mockResponse();
@@ -350,7 +358,7 @@ describe('AuthController', () => {
         errorResponse: {
           success: false,
           message: 'Validation failed',
-          errors: ['Email must be a valid email address', 'Current password is required'],
+          errors: ['Email must be a valid email address', 'New password is required'],
         },
       });
 
@@ -371,7 +379,6 @@ describe('AuthController', () => {
       const req = {
         body: {
           email: 'nonexistent@example.com',
-          current_password: 'password123',
           new_password: 'newPassword123',
         },
       };
@@ -380,7 +387,6 @@ describe('AuthController', () => {
       Validator.validate.mockReturnValue({
         _value: {
           email: 'nonexistent@example.com',
-          current_password: 'password123',
           new_password: 'newPassword123',
         },
         errorResponse: null,
@@ -395,7 +401,6 @@ describe('AuthController', () => {
       expect(Validator.validate).toHaveBeenCalledWith(expect.anything(), req.body);
       expect(mockAuthService.resetPassword).toHaveBeenCalledWith({
         email: 'nonexistent@example.com',
-        currentPassword: 'password123',
         newPassword: 'newPassword123',
       });
       expect(res.status).toHaveBeenCalledWith(404);
@@ -409,7 +414,6 @@ describe('AuthController', () => {
       const req = {
         body: {
           email: 'john@example.com',
-          current_password: 'wrongPassword',
           new_password: 'newPassword123',
         },
       };
@@ -418,7 +422,6 @@ describe('AuthController', () => {
       Validator.validate.mockReturnValue({
         _value: {
           email: 'john@example.com',
-          current_password: 'wrongPassword',
           new_password: 'newPassword123',
         },
         errorResponse: null,
@@ -433,7 +436,6 @@ describe('AuthController', () => {
       expect(Validator.validate).toHaveBeenCalledWith(expect.anything(), req.body);
       expect(mockAuthService.resetPassword).toHaveBeenCalledWith({
         email: 'john@example.com',
-        currentPassword: 'wrongPassword',
         newPassword: 'newPassword123',
       });
       expect(res.status).toHaveBeenCalledWith(401);
@@ -447,7 +449,6 @@ describe('AuthController', () => {
       const req = {
         body: {
           email: 'john@example.com',
-          current_password: 'password123',
           new_password: 'newPassword123',
         },
       };
@@ -456,7 +457,6 @@ describe('AuthController', () => {
       Validator.validate.mockReturnValue({
         _value: {
           email: 'john@example.com',
-          current_password: 'password123',
           new_password: 'newPassword123',
         },
         errorResponse: null,
@@ -470,7 +470,6 @@ describe('AuthController', () => {
       expect(Validator.validate).toHaveBeenCalledWith(expect.anything(), req.body);
       expect(mockAuthService.resetPassword).toHaveBeenCalledWith({
         email: 'john@example.com',
-        currentPassword: 'password123',
         newPassword: 'newPassword123',
       });
       expect(res.status).toHaveBeenCalledWith(500);

@@ -58,14 +58,17 @@ const resetPasswordSchema = Joi.object({
     'string.empty': 'Email is required',
     'string.email': 'Email must be a valid email address',
   }),
-  current_password: Joi.string().required().messages({
-    'string.empty': 'Current password is required',
-  }),
   new_password: Joi.string().min(8).required().messages({
     'string.empty': 'New password is required',
     'string.min': 'New password must be at least 8 characters long',
   }),
 });
+
+// Here i define validate schemas for updating user profile
+const updateProfileSchema = Joi.object({
+  fullname: Joi.string().min(3).optional(),
+  email: Joi.string().email().optional(),
+}).min(1); // At least one field must be provided
 
 module.exports = {
   signupSchema,
@@ -73,4 +76,5 @@ module.exports = {
   forgotPasswordSchema,
   verifyOtpSchema,
   resetPasswordSchema,
+  updateProfileSchema,
 };
