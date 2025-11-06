@@ -146,6 +146,34 @@ class AuthController {
       return res.status(status).json({ success: false, message: err.message });
     }
   }
+
+  // POST /api/v1/auth/signout
+async signOut(req, res) {
+  try {
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.COOKIE_SECURE === 'true',
+      sameSite: process.env.COOKIE_SAMESITE || 'Strict',
+      domain: process.env.COOKIE_DOMAIN || '.localhost',
+      path: process.env.COOKIE_PATH || '/',
+    };
+
+    // Clear both cookies
+    res.clearCookie('accessToken', cookieOptions);
+    res.clearCookie('refreshToken', cookieOptions);
+
+    logger.info(`User signed out successfully`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Signed out successfully',
+    });
+  } catch (err) {
+    logger.error(`Signout error - ${err.message}`);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+}
+
 }
 
 module.exports = new AuthController();
