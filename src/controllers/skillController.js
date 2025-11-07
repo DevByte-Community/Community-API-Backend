@@ -7,7 +7,7 @@ const {
   validateSkillId,
 } = require('../utils/validators/skillValidator');
 
-const logger = createLogger('MODULE:SKILL_CONTROLLER');
+const logger = createLogger('SKILL_CONTROLLER');
 
 class SkillController {
   // POST /api/v1/admin/skills
@@ -55,7 +55,7 @@ class SkillController {
   }
 
   // GET /api/v1/admin/skills
-  async getAllSkills(req, res) {
+  async getSkills(req, res) {
     try {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
@@ -67,7 +67,7 @@ class SkillController {
           .json({ success: false, message: 'Page and limit must be positive numbers.' });
       }
 
-      const result = await skillService.getAll(page, limit);
+      const result = await skillService.getSkills(page, limit);
       return res.status(200).json(result);
     } catch (err) {
       logger.error(`Failed to get all skills - ${err.message}`);

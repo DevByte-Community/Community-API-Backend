@@ -142,7 +142,7 @@ router.put('/skills/:id', skillController.update);
  *       500:
  *         description: Internal server error
  */
-router.get('/skills', skillController.getAllSkills);
+router.get('/skills', skillController.getSkills);
 
 /**
  * @swagger

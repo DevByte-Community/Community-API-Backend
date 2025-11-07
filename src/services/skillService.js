@@ -3,7 +3,7 @@ const { Skill } = require('../models');
 const { UniqueConstraintError } = require('sequelize');
 const createLogger = require('../utils/logger');
 
-const logger = createLogger('MODULE:SKILL_SERVICE');
+const logger = createLogger('SKILL_SERVICE');
 
 class SkillService {
   /**
@@ -114,7 +114,7 @@ class SkillService {
    * @param {number} limit - The maximum number of items per page.
    * @returns {Promise<object>} A promise that resolves to an object containing skills and pagination info.
    */
-  async getAll(page = 1, limit = 10) {
+  async getSkills(page = 1, limit = 10) {
     try {
       const offset = (page - 1) * limit; // Calculate the OFFSET
       const totalCount = await Skill.count(); // Fetch the total count
