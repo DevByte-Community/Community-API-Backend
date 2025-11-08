@@ -2,11 +2,6 @@ const { Skill } = require('../../models');
 const skillService = require('../../services/skillService');
 const { UniqueConstraintError } = require('sequelize');
 
-beforeAll(() => {
-  jest.spyOn(console, 'error').mockImplementation(() => {});
-  jest.spyOn(console, 'log').mockImplementation(() => {});
-});
-
 jest.mock('../../models', () => ({
   Skill: {
     create: jest.fn(),
@@ -18,6 +13,11 @@ jest.mock('../../models', () => ({
 }));
 
 describe('SkillService', () => {
+  beforeAll(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
   });

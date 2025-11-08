@@ -57,8 +57,8 @@ class SkillController {
   // GET /api/v1/admin/skills
   async getSkills(req, res) {
     try {
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
+      const page = req.query.page ? parseInt(req.query.page) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit) : 10;
 
       // Ensure limit and page are positive
       if (page < 1 || limit < 1) {
