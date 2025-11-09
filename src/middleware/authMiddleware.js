@@ -2,8 +2,8 @@
 const passport = require('passport');
 const { Strategy: JwtStrategy } = require('passport-jwt');
 const { UnauthorizedError } = require('../utils/customErrors');
+
 const { User } = require('../models');
-const { cfg } = require('../utils/cookies');
 
 /**
  * Custom extractor: prefer HttpOnly cookie, fall back to Authorization header.

@@ -1,4 +1,4 @@
-{
+  {
     "name": "community-api-backend",
     "version": "1.0.0",
     "description": "Backend repository for Devbyte community online platform",
@@ -84,4 +84,4 @@
     "engines": {
         "node": ">=18.0.0"
     }
-}
+  }
