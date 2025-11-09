@@ -7,37 +7,37 @@ const router = express.Router();
 /**
  * @swagger
  * /api/v1/admin/skills:
- *  post:
- *   summary: Create a new skill (Admin Only)
- *   tags: [SKILL]
- *   requestBody:
- *     required: true
- *     content:
- *       application/json:
- *         schema:
- *           type: object
- *           properties:
- *             name:
- *               type: string
- *               example: Java
- *             description:
- *               type: string
- *   responses:
- *     201:
- *       description: Skill sucessfully created
+ *   post:
+ *     summary: Create a new skill (Admin Only)
+ *     tags: [SKILL]
+ *     requestBody:
+ *       required: true
  *       content:
- *          application/json:
- *              schema:
- *                  type: object
- *              properties:
- *                   success:
- *                      type:boolean
- *                       example: true
- *                   message:
- *                       type: string
- *                       example: Skill sucessfully created
- *     400:
- *       description: Bad request (e.g., validation errors)
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Java
+ *               description:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Skill successfully created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Skill successfully created
+ *       400:
+ *         description: Bad request (validation errors)
  *         content:
  *           application/json:
  *             schema:
@@ -53,9 +53,9 @@ const router = express.Router();
  *                   type: array
  *                   items:
  *                     type: string
- *                   example: ["Name is required", ]
- *     409:
- *       description: Conflict (e.g., Skill already registered)
+ *                   example: ["Name is required"]
+ *       409:
+ *         description: Conflict (Skill already registered)
  *         content:
  *           application/json:
  *             schema:
@@ -66,9 +66,9 @@ const router = express.Router();
  *                   example: false
  *                 message:
  *                   type: string
- *                   example: Skill already registered.
- *     500:
- *       description: Internal server error
+ *                   example: Skill already registered
+ *       500:
+ *         description: Internal server error
  *         content:
  *           application/json:
  *             schema:
@@ -82,6 +82,7 @@ const router = express.Router();
  *                   example: Internal server error
  */
 router.post('/skills', skillController.create);
+
 
 /**
  * @swagger

@@ -6,7 +6,7 @@ const requireAdmin = (req, res, next) => {
       .json({ success: false, message: 'Access Denied. User not authenticated.' });
 
   // Check the user's role.
-  if (req.user.role !== 'admin')
+  if (req.user.role !== 'ADMIN')
     return res
       .status(403)
       .json({ success: false, message: 'Access Denied. You must be an administrator.' });
