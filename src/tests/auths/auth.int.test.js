@@ -11,6 +11,7 @@ let db;
 let redisClientModule;
 const testUserEmail = 'john@example.com';
 const testUserPassword = 'validPassword123';
+let agent;
 
 const otpStore = {}; // mock OTP memory store
 
@@ -22,7 +23,13 @@ jest.mock('../../services/emailService', () => ({
   }),
 }));
 
-describe('POST /api/v1/auth/signin (Testcontainers)', () => {
+const TEST_USER = {
+  fullname: 'Refresh User',
+  email: 'refresh@example.com',
+  password: 'validPassword123',
+};
+
+describe('POST /api/v1/auth/** (Testcontainers)', () => {
   beforeAll(async () => {
     // Start PostgreSQL container
     postgresContainer = await new GenericContainer('postgres:14')
@@ -81,6 +88,11 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
       email: testUserEmail, // 'john@example.com'
       password: 'validPassword123',
     });
+
+    agent = request.agent(app); // ← persistent session
+
+    // Seed user using the agent (cookies will be stored)
+    await agent.post('/api/v1/auth/signup').send(TEST_USER);
   });
 
   afterAll(async () => {
@@ -271,4 +283,101 @@ describe('POST /api/v1/auth/signin (Testcontainers)', () => {
       expect(res.body.message).toMatch(/User not found/i);
     });
   });
+
+  // REFRESH TOKEN FLOW
+  describe('POST /api/v1/auth/refresh', () => {
+    let originalAccessToken;
+    let originalRefreshToken;
+
+    beforeAll(async () => {
+      // Re-use the same agent (cookies persist)
+      const res = await agent.post('/api/v1/auth/signup').send(TEST_USER);
+      const cookies = res.headers['set-cookie'];
+
+      originalAccessToken = extractCookie(cookies, 'access_token');
+      originalRefreshToken = extractCookie(cookies, 'refresh_token');
+    });
+
+    it('should refresh tokens with valid refresh cookie', async () => {
+      const res = await agent.post('/api/v1/auth/refresh');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe('Tokens refreshed successfully');
+
+      const newCookies = res.headers['set-cookie'];
+      const newAccess = extractCookie(newCookies, 'access_token');
+      const newRefresh = extractCookie(newCookies, 'refresh_token');
+
+      expect(newAccess).toBeDefined();
+      expect(newRefresh).toBeDefined();
+      expect(newAccess).not.toBe(originalAccessToken);
+      expect(newRefresh).not.toBe(originalRefreshToken);
+    });
+
+    it('should return 401 if refresh token cookie is missing', async () => {
+      const res = await request(app).post('/api/v1/auth/refresh'); // no agent → no cookies
+
+      expect(res.status).toBe(401);
+      expect(res.body.message).toBe('Refresh token missing');
+    });
+
+    it('should return 401 if refresh token is invalid', async () => {
+      // Create a fresh agent with ONLY the invalid token
+      const invalidAgent = request.agent(app);
+
+      // Manually set an invalid refresh token
+      invalidAgent.jar.setCookie('refresh_token=invalid.jwt.token; Path=/; HttpOnly; Secure');
+      const res = await invalidAgent.post('/api/v1/auth/refresh');
+
+      expect(res.status).toBe(401);
+      expect(res.body.message).toBe('Refresh token missing');
+    });
+
+    it('should return 401 if user is deleted (token valid but user gone)', async () => {
+      // Delete user
+      await db.User.destroy({ where: { email: TEST_USER.email } });
+
+      const res = await agent.post('/api/v1/auth/refresh');
+
+      expect(res.status).toBe(401);
+      expect(res.body.message).toBe('User not found');
+    });
+
+    it('should return 401 if refresh token is expired', async () => {
+      // 1. Sign up to get valid cookies
+      const signupRes = await agent.post('/api/v1/auth/signup').send({
+        ...TEST_USER,
+        email: 'refresh-expired@example.com',
+      });
+
+      const validRefreshToken = extractCookie(signupRes.headers['set-cookie'], 'refresh_token');
+      expect(validRefreshToken).toBeDefined();
+
+      // 2. Create an EXPIRED JWT manually
+      const jwt = require('jsonwebtoken');
+      const expiredToken = jwt.sign(
+        { id: 'fake-user-id', email: 'fake@example.com' },
+        process.env.JWT_REFRESH_SECRET || 'test-refresh-secret',
+        { expiresIn: '-1s' } // expired 1 second ago
+      );
+
+      // 3. Use a fresh agent with ONLY the expired token
+      const expiredAgent = request.agent(app);
+      expiredAgent.jar.setCookie(`refresh_token=${expiredToken}; Path=/; HttpOnly`);
+
+      // 4. Call refresh
+      const res = await expiredAgent.post('/api/v1/auth/refresh');
+
+      expect(res.status).toBe(401);
+      expect(res.body.message).toBe('Invalid or expired refresh token');
+    });
+  });
 });
+
+function extractCookie(cookies, name) {
+  if (!cookies) return null;
+  const cookie = cookies.find((c) => c.includes(name));
+  if (!cookie) return null;
+  return cookie.split(';')[0].split('=')[1];
+}

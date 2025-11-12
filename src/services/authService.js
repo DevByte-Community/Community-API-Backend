@@ -2,7 +2,7 @@
 const bcrypt = require('bcrypt');
 const { UniqueConstraintError } = require('sequelize');
 const { User } = require('../models');
-const { generateTokens } = require('../utils/jwt');
+const { generateTokens, verifyRefreshToken } = require('../utils/jwt');
 const createLogger = require('../utils/logger');
 
 const logger = createLogger('AUTH_SERVICE');
@@ -99,6 +99,35 @@ class AuthService {
     await user.save();
     logger.info(`Password reset for ${email}`);
     return true;
+  }
+
+  /** Refresh access token */
+  async refresh(refreshToken) {
+    let payload;
+    try {
+      payload = verifyRefreshToken(refreshToken);
+    } catch (err) {
+      const error = new Error('Invalid or expired refresh token');
+      error.statusCode = 401;
+      throw error;
+    }
+
+    // Optional: extra safety – make sure the user still exists
+    const user = await User.findByPk(payload.id, {
+      attributes: ['id', 'fullname', 'email', 'role'],
+    });
+    if (!user) {
+      const error = new Error('User not found');
+      error.statusCode = 401;
+      throw error;
+    }
+    logger.info('Refresh token successfully');
+
+    return {
+      success: true,
+      message: 'Tokens refreshed successfully',
+      tokens: generateTokens(user),
+    };
   }
 }
 
