@@ -15,7 +15,7 @@ const {
   deleteOtpForEmail,
 } = require('../services/otpService');
 const { sendOtpEmail } = require('../services/emailService');
-const { setAuthCookies } = require('../utils/cookies');
+const { setAuthCookies, clearAuthCookies } = require('../utils/cookies');
 const createLogger = require('../utils/logger');
 
 const logger = createLogger('AUTH_CONTROLLER');
@@ -150,19 +150,10 @@ class AuthController {
   // POST /api/v1/auth/signout
 async signOut(req, res) {
   try {
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.COOKIE_SECURE === 'true',
-      sameSite: process.env.COOKIE_SAMESITE || 'Strict',
-      domain: process.env.COOKIE_DOMAIN || '.localhost',
-      path: process.env.COOKIE_PATH || '/',
-    };
+    
+   clearAuthCookies(res); // uses the same cookie options and names from the utils/cookies.js
 
-    // Clear both cookies
-    res.clearCookie('accessToken', cookieOptions);
-    res.clearCookie('refreshToken', cookieOptions);
-
-    logger.info(`User signed out successfully`);
+    logger.info('User signed out successfully.');
 
     return res.status(200).json({
       success: true,
