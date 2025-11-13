@@ -215,6 +215,7 @@ describe('UserController', () => {
             id: 'user-123',
             email: 'test@example.com',
             fullname: 'John',
+            password: '123456',
           },
         },
       });
