@@ -10,15 +10,13 @@ dotenv.config({ path: path.resolve(process.cwd(), envFile) });
 
 module.exports = {
   development: {
-    use_env_variable: 'DATABASE_URL', // Use connection string
+    username: process.env.POSTGRES_USER,
+    password: process.env.POSTGRES_PASSWORD,
+    database: process.env.POSTGRES_DB,
+    host: process.env.POSTGRES_HOST,
+    port: process.env.POSTGRES_PORT,
     dialect: 'postgres',
     logging: false,
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false,
-      },
-    },
   },
   test: {
     username: process.env.POSTGRES_USER,
