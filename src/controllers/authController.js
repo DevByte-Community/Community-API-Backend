@@ -17,6 +17,7 @@ const {
 const { sendOtpEmail } = require('../services/emailService');
 const { setAuthCookies } = require('../utils/cookies');
 const createLogger = require('../utils/logger');
+const cookiesConfig = require('../utils/authCookieConfig');
 
 const logger = createLogger('AUTH_CONTROLLER');
 
@@ -59,6 +60,29 @@ class AuthController {
       });
     } catch (err) {
       logger.error(`Signin failed for email=${req.body.email} - ${err.message}`);
+      const status = err.statusCode || 500;
+      return res.status(status).json({ success: false, message: err.message });
+    }
+  }
+
+  /** POST /api/v1/auth/refresh */
+  async refresh(req, res) {
+    try {
+      const refreshToken = req.cookies[cookiesConfig.REFRESH_COOKIE];
+      if (!refreshToken) {
+        return res.status(401).json({ success: false, message: 'Refresh token missing' });
+      }
+
+      const result = await authService.refresh(refreshToken);
+      setAuthCookies(res, result.tokens);
+
+      logger.info(`Refresh token operation successful`);
+      return res.json({
+        success: true,
+        message: result.message,
+      });
+    } catch (err) {
+      logger.error(`Refresh failed – ${err.message}`);
       const status = err.statusCode || 500;
       return res.status(status).json({ success: false, message: err.message });
     }
@@ -148,32 +172,31 @@ class AuthController {
   }
 
   // POST /api/v1/auth/signout
-async signOut(req, res) {
-  try {
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.COOKIE_SECURE === 'true',
-      sameSite: process.env.COOKIE_SAMESITE || 'Strict',
-      domain: process.env.COOKIE_DOMAIN || '.localhost',
-      path: process.env.COOKIE_PATH || '/',
-    };
+  async signOut(req, res) {
+    try {
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.COOKIE_SECURE === 'true',
+        sameSite: process.env.COOKIE_SAMESITE || 'Strict',
+        domain: process.env.COOKIE_DOMAIN || '.localhost',
+        path: process.env.COOKIE_PATH || '/',
+      };
 
-    // Clear both cookies
-    res.clearCookie('accessToken', cookieOptions);
-    res.clearCookie('refreshToken', cookieOptions);
+      // Clear both cookies
+      res.clearCookie('accessToken', cookieOptions);
+      res.clearCookie('refreshToken', cookieOptions);
 
-    logger.info(`User signed out successfully`);
+      logger.info(`User signed out successfully`);
 
-    return res.status(200).json({
-      success: true,
-      message: 'Signed out successfully',
-    });
-  } catch (err) {
-    logger.error(`Signout error - ${err.message}`);
-    return res.status(500).json({ success: false, message: 'Internal server error' });
+      return res.status(200).json({
+        success: true,
+        message: 'Signed out successfully',
+      });
+    } catch (err) {
+      logger.error(`Signout error - ${err.message}`);
+      return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
   }
-}
-
 }
 
 module.exports = new AuthController();

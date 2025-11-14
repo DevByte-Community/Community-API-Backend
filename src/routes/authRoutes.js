@@ -184,6 +184,53 @@ router.post('/signup', authController.signup);
  */
 router.post('/signin', authController.signin);
 
+/** @swagger
+ * /api/v1/auth/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     description: |
+ *       Reads the **httpOnly** `refresh_token` cookie, validates it,
+ *       and returns a new access token + a new refresh token (both set as cookies).
+ *     tags: [Authentication]
+ *     responses:
+ *       200:
+ *         description: Tokens refreshed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 message: { type: string, example: "Tokens refreshed" }
+ *       401:
+ *         description: Unauthorized - Invalid credentials
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Invalid credentials.
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ */
+router.post('/refresh', authController.refresh);
+
 /**
  * @swagger
  * /api/v1/auth/forgot-password:
@@ -491,6 +538,5 @@ router.post('/reset-password', authController.resetPassword);
  *                   example: Internal server error
  */
 router.post('/signout', authController.signOut);
-
 
 module.exports = router;

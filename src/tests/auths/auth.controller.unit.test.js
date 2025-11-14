@@ -31,17 +31,20 @@ jest.mock('../../utils/cookies', () => ({
   cfg: { ACCESS_COOKIE: 'access_token' },
 }));
 
+jest.mock('../../utils/authCookieConfig', () => ({
+  REFRESH_COOKIE: 'refresh_token',
+}));
+
 const mockAuthService = {
   signup: jest.fn(),
   signin: jest.fn(),
   findUserByEmail: jest.fn(),
   updatePasswordByEmail: jest.fn().mockResolvedValue(),
   resetPassword: jest.fn(),
+  refresh: jest.fn(),
 };
 
 jest.mock('../../services/authService', () => mockAuthService);
-
-// jest.mock('../../utils/logger');
 
 const {
   generateOtp,
@@ -476,6 +479,121 @@ describe('AuthController', () => {
       expect(res.json).toHaveBeenCalledWith({
         success: false,
         message: 'Database connection error',
+      });
+    });
+  });
+
+  // ---------------- REFRESH TOKEN ----------------
+  describe('refresh', () => {
+    const mockUser = {
+      id: 'user-uuid-123',
+      fullname: 'John Doe',
+      email: 'john@example.com',
+      role: 'USER',
+    };
+
+    const mockTokens = {
+      accessToken: 'new-access-jwt',
+      refreshToken: 'new-refresh-jwt',
+    };
+
+    const mockRefreshResult = {
+      success: true,
+      message: 'Tokens refreshed',
+      tokens: mockTokens,
+      user: mockUser,
+    };
+
+    it('should refresh tokens successfully when valid refresh token is provided', async () => {
+      const req = {
+        cookies: {
+          refresh_token: 'valid-refresh-token',
+        },
+      };
+      const res = mockResponse();
+
+      authService.refresh.mockResolvedValue(mockRefreshResult);
+
+      await authController.refresh(req, res);
+
+      expect(authService.refresh).toHaveBeenCalledWith('valid-refresh-token');
+      expect(mockSetAuthCookies).toHaveBeenCalledWith(res, mockTokens);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Tokens refreshed',
+      });
+      expect(res.status).not.toHaveBeenCalled(); // 200 by default
+    });
+
+    it('should return 401 when refresh token cookie is missing', async () => {
+      const req = { cookies: {} };
+      const res = mockResponse();
+
+      await authController.refresh(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Refresh token missing',
+      });
+      expect(authService.refresh).not.toHaveBeenCalled();
+      expect(mockSetAuthCookies).not.toHaveBeenCalled();
+    });
+
+    it('should return 401 when refresh token is invalid or expired', async () => {
+      const req = {
+        cookies: { refresh_token: 'invalid-token' },
+      };
+      const res = mockResponse();
+
+      const error = new Error('Invalid or expired refresh token');
+      error.statusCode = 401;
+      authService.refresh.mockRejectedValue(error);
+
+      await authController.refresh(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Invalid or expired refresh token',
+      });
+      expect(mockSetAuthCookies).not.toHaveBeenCalled();
+    });
+
+    it('should return 401 when user is not found', async () => {
+      const req = {
+        cookies: { refresh_token: 'valid-but-user-deleted' },
+      };
+      const res = mockResponse();
+
+      const error = new Error('User not found');
+      error.statusCode = 401;
+      authService.refresh.mockRejectedValue(error);
+
+      await authController.refresh(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'User not found',
+      });
+    });
+
+    it('should return 500 on unexpected service error', async () => {
+      const req = {
+        cookies: { refresh_token: 'valid-token' },
+      };
+      const res = mockResponse();
+
+      const error = new Error('Database connection failed');
+      authService.refresh.mockRejectedValue(error);
+
+      await authController.refresh(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Database connection failed',
       });
     });
   });
