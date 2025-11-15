@@ -88,22 +88,32 @@ const authenticateJWT = (req, res, next) => {
 };
 
 /**
- * Role guards
+ * Middleware to check if user has minimum required role
+ * Uses hierarchical role checking
+ *
+ * @param {string} minRole - Minimum role required (USER, ADMIN, or ROOT)
  */
-const requireRole =
-  (...requiredRoles) =>
-  (req, _res, next) => {
-    if (!req.user) {
-      return next(new UnauthorizedError('Not authenticated.'));
-    }
-    const userRoles = Array.isArray(req.user.roles) ? req.user.roles : [];
-    const ok = requiredRoles.every((r) => userRoles.includes(r));
-    if (!ok) {
-      return next(new UnauthorizedError('Insufficient permissions.'));
-    }
-    return next();
-  };
+const requireRole = (minRole) => (req, _res, next) => {
+  if (!req.user) {
+    return next(new UnauthorizedError('Not authenticated.'));
+  }
+
+  if (!req.user.hasRole(minRole)) {
+    return next(
+      new UnauthorizedError(`Insufficient permissions. Minimum required role: ${minRole}`)
+    );
+  }
+
+  return next();
+};
+
+/**
+ * Convenience middleware for common role requirements
+ */
+const requireAdmin = requireRole('ADMIN');
+const requireRoot = requireRole('ROOT');
 
 module.exports = passport;
 module.exports.authenticateJWT = authenticateJWT;
-module.exports.requireRole = requireRole;
+module.exports.requireAdmin = requireAdmin;
+module.exports.requireRoot = requireRoot;
