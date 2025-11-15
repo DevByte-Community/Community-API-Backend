@@ -55,11 +55,15 @@ const updateProfile = asyncHandler(async (req, res) => {
 
 const getProfile = asyncHandler(async (req, res) => {
   try {
-    logger.info(`Get Profile successful for userId=${req.user.id}`);
+    const { password, ...user } = req.user.dataValues;
+    logger.info(
+      `Get Profile successful for userId=${req.user.dataValues.id}, ${password.slice(0, 1)}`
+    );
+
     return res.status(200).json({
       success: true,
       message: 'Get Profile successfully',
-      user: { ...req.user.dataValues, skills: [] },
+      user: { ...user, skills: [] },
     });
   } catch (err) {
     logger.error(`get user profile failed for userId=${req.user?.id} - ${err.message}`);

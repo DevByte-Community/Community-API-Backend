@@ -17,7 +17,7 @@ const cfg = {
   COOKIE_DOMAIN: parseBool(process.env.NODE_ENV) ? process.env.AUTH_COOKIE_DOMAIN : '', // set nothing when dev
   COOKIE_PATH: process.env.AUTH_COOKIE_PATH || '/',
 
-  COOKIE_SECURE: parseBool(process.env.NODE_ENV),
+  COOKIE_SECURE: process.env.AUTH_COOKIE_SECURE === 'true',
   COOKIE_HTTPONLY: parseBool(process.env.NODE_ENV),
   COOKIE_SAMESITE: process.env.AUTH_COOKIE_SAMESITE,
 
