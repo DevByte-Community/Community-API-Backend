@@ -70,6 +70,18 @@ const updateProfileSchema = Joi.object({
   email: Joi.string().email().optional(),
 }).min(1); // At least one field must be provided
 
+const assignRoleSchema = Joi.object({
+  userId: Joi.string().required().messages({
+    'string.empty': 'User ID is required',
+    'any.required': 'User ID is required',
+  }),
+  role: Joi.string().valid('USER', 'ADMIN').required().messages({
+    'string.empty': 'Role is required',
+    'any.required': 'Role is required',
+    'any.only': 'Role must be one of: USER, ADMIN',
+  }),
+});
+
 module.exports = {
   signupSchema,
   signinSchema,
@@ -77,4 +89,5 @@ module.exports = {
   verifyOtpSchema,
   resetPasswordSchema,
   updateProfileSchema,
+  assignRoleSchema,
 };

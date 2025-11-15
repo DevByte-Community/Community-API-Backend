@@ -19,3 +19,13 @@ process.env.POSTGRES_HOST = process.env.POSTGRES_HOST || 'localhost';
 process.env.POSTGRES_PORT = process.env.POSTGRES_PORT || '5432';
 
 console.log('✅ Jest setup completed - Environment variables initialized');
+
+// Mock logger globally to prevent initialization errors
+jest.mock('./src/utils/logger', () => {
+  return jest.fn(() => ({
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  }));
+});
