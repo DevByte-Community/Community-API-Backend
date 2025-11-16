@@ -14,6 +14,7 @@ const blogRoutes = require('./blogRoutes');
 const userRoutes = require('./userRoutes');
 const dbRoutes = require('./dbRoutes');
 const authRoutes = require('./authRoutes');
+const roleRoutes = require('./roleRoutes');
 
 const router = express.Router();
 
@@ -25,6 +26,7 @@ router.use('/jobs', jobRoutes);
 router.use('/blogs', blogRoutes);
 router.use('/users', userRoutes);
 router.use('/auth', authRoutes);
+router.use('/roles', roleRoutes);
 
 // DB test route
 router.use('/test', dbRoutes);
