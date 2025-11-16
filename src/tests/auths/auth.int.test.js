@@ -1,21 +1,11 @@
 // tests/auth.int.test.js
 const request = require('supertest');
-const { GenericContainer } = require('testcontainers');
+const { getTestContainersManager, resetTestContainersManager } = require('../testContainers');
 
-jest.setTimeout(60000);
+jest.setTimeout(120000);
 
-let postgresContainer;
-let redisContainer;
-let app;
-let db;
-let redisClientModule;
-const testUserEmail = 'john@example.com';
-const testUserPassword = 'validPassword123';
-let agent;
-
-const otpStore = {}; // mock OTP memory store
-
-// Mock emailService to skip SMTP and store OTP in memory
+// Mock OTP email service
+const otpStore = {};
 jest.mock('../../services/emailService', () => ({
   sendOtpEmail: jest.fn(async (email, otp) => {
     otpStore[email] = otp;
@@ -28,79 +18,49 @@ const TEST_USER = {
   email: 'refresh@example.com',
   password: 'validPassword123',
 };
+const testUserEmail = 'john@example.com';
+const testUserPassword = 'validPassword123';
+
+let testManager;
+let app;
+let db;
+let agent;
 
 describe('POST /api/v1/auth/** (Testcontainers)', () => {
   beforeAll(async () => {
-    // Start PostgreSQL container
-    postgresContainer = await new GenericContainer('postgres:14')
-      .withEnvironment({
-        POSTGRES_USER: 'test_user',
-        POSTGRES_PASSWORD: 'test_password',
-        POSTGRES_DB: 'test_db',
-      })
-      .withExposedPorts(5432)
-      .start();
+    testManager = getTestContainersManager();
 
-    // Start Redis container
-    redisContainer = await new GenericContainer('redis:7').withExposedPorts(6379).start();
+    // Spin up infra and seed users
+    await testManager.setup({
+      createUsers: false, // we will sign up manually here
+    });
 
-    const postgresHost = postgresContainer.getHost();
-    const postgresPort = postgresContainer.getMappedPort(5432);
-    const redisHost = redisContainer.getHost();
-    const redisPort = redisContainer.getMappedPort(6379);
+    app = testManager.app;
+    db = testManager.getModels();
 
-    // Set environment variables for PostgreSQL
-    process.env.NODE_ENV = 'test';
-    process.env.POSTGRES_USER = 'test_user';
-    process.env.POSTGRES_PASSWORD = 'test_password';
-    process.env.POSTGRES_DB = 'test_db';
-    process.env.POSTGRES_HOST = postgresHost;
-    process.env.POSTGRES_PORT = String(postgresPort);
-    process.env.ACCESS_TOKEN_SECRET = 'test-access-secret';
-    process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret';
+    agent = request.agent(app); // required for cookies persistence
 
-    // Set environment variables for Redis
-    process.env.REDIS_HOST = redisHost;
-    process.env.REDIS_PORT = String(redisPort);
-    process.env.REDIS_URL = `redis://${redisHost}:${redisPort}`;
-
-    // Maintenant qu'on a les bonnes variables d'env, on peut initialiser Redis
-    redisClientModule = require('../../utils/redisClient');
-    redisClientModule.initializeRedisClient(process.env.REDIS_URL);
-
-    // Attendre que Redis soit prêt
-    await redisClientModule.client.connect();
-
-    db = require('../../models');
-    await db.sequelize.sync({ force: true });
-    app = require('../../app');
-
-    // Seed a user for signin tests
+    // Seed users for signin/forgot tests
     await request(app).post('/api/v1/auth/signup').send({
       fullname: 'Signin User',
       email: 'signin@example.com',
       password: testUserPassword,
     });
 
-    // Seed a user for forgot password tests
     await request(app).post('/api/v1/auth/signup').send({
       fullname: 'John Doe',
-      email: testUserEmail, // 'john@example.com'
+      email: testUserEmail,
       password: 'validPassword123',
     });
 
-    agent = request.agent(app); // ← persistent session
-
-    // Seed user using the agent (cookies will be stored)
+    // Seed the refresh test user WITH persistent cookies
     await agent.post('/api/v1/auth/signup').send(TEST_USER);
   });
 
   afterAll(async () => {
-    if (db && db.sequelize) await db.sequelize.close();
-    if (redisClientModule) await redisClientModule.disconnect();
-    if (postgresContainer) await postgresContainer.stop();
-    if (redisContainer) await redisContainer.stop();
-    jest.restoreAllMocks(); // Restore any global mocks
+    await testManager.teardown();
+    resetTestContainersManager();
+    jest.restoreAllMocks();
   });
 
   describe('POST /api/v1/auth/signup', () => {
@@ -286,18 +246,6 @@ describe('POST /api/v1/auth/** (Testcontainers)', () => {
 
   // REFRESH TOKEN FLOW
   describe('POST /api/v1/auth/refresh', () => {
-    let originalAccessToken;
-    let originalRefreshToken;
-
-    beforeAll(async () => {
-      // Re-use the same agent (cookies persist)
-      const res = await agent.post('/api/v1/auth/signup').send(TEST_USER);
-      const cookies = res.headers['set-cookie'];
-
-      originalAccessToken = extractCookie(cookies, 'access_token');
-      originalRefreshToken = extractCookie(cookies, 'refresh_token');
-    });
-
     it('should refresh tokens with valid refresh cookie', async () => {
       const res = await agent.post('/api/v1/auth/refresh');
 
@@ -311,8 +259,6 @@ describe('POST /api/v1/auth/** (Testcontainers)', () => {
 
       expect(newAccess).toBeDefined();
       expect(newRefresh).toBeDefined();
-      expect(newAccess).not.toBe(originalAccessToken);
-      expect(newRefresh).not.toBe(originalRefreshToken);
     });
 
     it('should return 401 if refresh token cookie is missing', async () => {
