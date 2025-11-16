@@ -17,7 +17,7 @@ const router = express.Router();
  *       - ADMIN and ROOT can assign USER or ADMIN roles
  *       - Cannot downgrade own role
  *       - Cannot assign role higher than caller's role
- *     tags: [Authentication, Roles]
+ *     tags: [Roles]
  *     security:
  *       - cookieAuth: []
  *     requestBody:
