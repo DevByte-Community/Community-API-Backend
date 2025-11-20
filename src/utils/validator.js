@@ -82,6 +82,17 @@ const assignRoleSchema = Joi.object({
   }),
 });
 
+// Here i define validation schemas for tech creation
+const createTechSchema = Joi.object({
+  name: Joi.string().min(2).required().messages({
+    'string.empty': 'Tech name is required',
+  }),
+  icon: Joi.string().uri().optional().messages({
+    'string.uri': 'Icon must be a valid URI',
+  }),
+  description: Joi.string().optional(),
+});
+
 module.exports = {
   signupSchema,
   signinSchema,
@@ -90,4 +101,5 @@ module.exports = {
   resetPasswordSchema,
   updateProfileSchema,
   assignRoleSchema,
+  createTechSchema,
 };

@@ -10,7 +10,7 @@ const { handleMulterUpload } = require('../middleware/uploadMiddleware');
 const router = express.Router();
 
 /**
- * @swagger
+ * @swagger 
  * /api/v1/users/profile/picture:
  *   patch:
  *     summary: Upload or update user profile picture
