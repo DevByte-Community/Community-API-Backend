@@ -120,4 +120,59 @@ describe('Users Controller (integration)', () => {
       expect([400, 422]).toContain(res.status);
     });
   });
+
+  describe('DELETE /api/v1/users/account', () => {
+    it('deletes the account with correct password and prevents further access', async () => {
+      const res = await agent.delete('/api/v1/users/account').send({ reason: 'privacy' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        success: true,
+        message: 'Your account have been permanently deleted',
+      });
+
+      // Cookies should be cleared (Set-Cookie headers for access/refresh)
+      const setCookieHeaders = res.headers['set-cookie'] || [];
+      const cookieHeaderStr = setCookieHeaders.join(';');
+      expect(cookieHeaderStr).toContain('access_token=');
+      expect(cookieHeaderStr).toContain('refresh_token=');
+
+      // Further authenticated calls should fail (cookies were cleared)
+      const profileRes = await agent.get('/api/v1/users/profile');
+      expect([401, 404]).toContain(profileRes.status);
+    });
+
+    it('returns 404/401 on second delete attempt for same user', async () => {
+      // Create a new user and login with a fresh agent
+      const localAgent = request.agent(app);
+      const email = 'delete-twice@example.com';
+      const password = 'Password123!';
+
+      const signupRes = await localAgent.post('/api/v1/auth/signup').send({
+        fullname: 'Delete Twice',
+        email,
+        password,
+      });
+      expect([200, 201]).toContain(signupRes.status);
+
+      // First delete → should succeed
+      const firstDelete = await localAgent
+        .delete('/api/v1/users/account')
+        .send({ password, reason: 'privacy' });
+      expect(firstDelete.status).toBe(200);
+
+      // Second delete → should be 404 or 401
+      const secondDelete = await localAgent
+        .delete('/api/v1/users/account')
+        .send({ password, reason: 'privacy' });
+      expect([404, 401]).toContain(secondDelete.status);
+    });
+
+    it('requires authentication (no cookies → 401/403)', async () => {
+      const res = await request(app)
+        .delete('/api/v1/users/account')
+        .send({ password: 'anything', reason: 'privacy' });
+      expect([401, 403]).toContain(res.status);
+    });
+  });
 });

@@ -5,10 +5,12 @@
 // -------------------------------------------------------
 const mockUploadProfilePicture = jest.fn();
 const mockUpdateProfileData = jest.fn();
+const mockDeleteUserAccount = jest.fn();
 
 jest.mock('../../services/userService', () => ({
   uploadProfilePicture: mockUploadProfilePicture,
   updateProfileData: mockUpdateProfileData,
+  deleteUserAccount: mockDeleteUserAccount,
 }));
 
 // -------------------------------------------------------
@@ -44,6 +46,7 @@ const {
   updateProfilePicture,
   updateProfile,
   getProfile,
+  deleteAccount,
 } = require('../../controllers/userController');
 const { ValidationError } = require('../../utils/customErrors');
 
@@ -65,6 +68,7 @@ const mockResponse = () => {
   const res = {};
   res.status = jest.fn().mockReturnValue(res);
   res.json = jest.fn().mockReturnValue(res);
+  res.clearCookie = jest.fn().mockReturnValue(res);
   return res;
 };
 
@@ -251,6 +255,113 @@ describe('UserController', () => {
           message: expect.any(String),
         })
       );
+    });
+  });
+
+  // ======================================================
+  // deleteAccount TESTS
+  // ======================================================
+  describe('deleteAccount', () => {
+    it('should delete account with provided non-empty reason and clear cookies', async () => {
+      const req = mockRequest({
+        body: {
+          reason: '  privacy concern ', // will be trimmed by controller
+        },
+      });
+      const res = mockResponse();
+
+      mockDeleteUserAccount.mockResolvedValue();
+
+      await deleteAccount(req, res);
+
+      // deleteUserAccount called with trimmed reason
+      expect(mockDeleteUserAccount).toHaveBeenCalledWith('user-123', 'privacy concern');
+
+      // cookies cleared
+      expect(res.clearCookie).toHaveBeenCalledTimes(2);
+      expect(res.clearCookie).toHaveBeenCalledWith('access_token', expect.any(Object));
+      expect(res.clearCookie).toHaveBeenCalledWith('refresh_token', expect.any(Object));
+
+      // response
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Your account have been permanently deleted',
+      });
+    });
+
+    it('should default reason to "unknown" when not provided', async () => {
+      const req = mockRequest({
+        body: {}, // no reason
+      });
+      const res = mockResponse();
+
+      mockDeleteUserAccount.mockResolvedValue();
+
+      await deleteAccount(req, res);
+
+      expect(mockDeleteUserAccount).toHaveBeenCalledWith('user-123', 'unknown');
+      expect(res.clearCookie).toHaveBeenCalledTimes(2);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Your account have been permanently deleted',
+      });
+    });
+
+    it('should treat blank reason as "unknown"', async () => {
+      const req = mockRequest({
+        body: { reason: '   ' }, // only spaces
+      });
+      const res = mockResponse();
+
+      mockDeleteUserAccount.mockResolvedValue();
+
+      await deleteAccount(req, res);
+
+      expect(mockDeleteUserAccount).toHaveBeenCalledWith('user-123', 'unknown');
+      expect(res.clearCookie).toHaveBeenCalledTimes(2);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Your account have been permanently deleted',
+      });
+    });
+
+    it('should handle missing body (req.body = undefined) and still default reason to "unknown"', async () => {
+      const req = mockRequest({
+        body: undefined, // controller does: const body = req.body || {}
+      });
+      const res = mockResponse();
+
+      mockDeleteUserAccount.mockResolvedValue();
+
+      await deleteAccount(req, res);
+
+      expect(mockDeleteUserAccount).toHaveBeenCalledWith('user-123', 'unknown');
+      expect(res.clearCookie).toHaveBeenCalledTimes(2);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Your account have been permanently deleted',
+      });
+    });
+
+    it('should propagate error from deleteUserAccount and not send response', async () => {
+      const req = mockRequest({
+        body: { reason: 'privacy' },
+      });
+      const res = mockResponse();
+
+      const error = new Error('delete failed');
+      mockDeleteUserAccount.mockRejectedValue(error);
+
+      await expect(deleteAccount(req, res)).rejects.toThrow('delete failed');
+
+      // No cookies cleared and no response written if service fails
+      expect(res.clearCookie).not.toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
     });
   });
 });
