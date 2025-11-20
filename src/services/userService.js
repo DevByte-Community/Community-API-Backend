@@ -31,14 +31,7 @@ const uploadProfilePicture = async (
     if (user.profilePicture) {
       const oldKey = user.profilePicture.split('/').pop();
       // Fire and forget - don't wait for deletion to complete
-      minioClient
-        .removeObject(bucketName, oldKey)
-        .then(() => {
-          logger.info(`Old profile picture deleted: ${oldKey}`);
-        })
-        .catch((error) => {
-          logger.warn(`Failed to delete old profile picture: ${error.message}`);
-        });
+      deleteFile(oldKey);
     }
 
     // Generate unique file name
@@ -125,7 +118,65 @@ const updateProfileData = async (user, updates) => {
   }
 };
 
+/**
+ * Permanently delete a user account (soft-delete row + delete MinIO files)
+ * @param {string} userId - ID of the authenticated user
+ * @param {string|undefined} reason - Optional reason for deletion
+ */
+const deleteUserAccount = async (userId, reason) => {
+  try {
+    const user = await User.findByPk(userId);
+
+    if (!user) {
+      logger.warn(`ACCOUNT_DELETE: user not found userId=${userId}`);
+      throw new NotFoundError('User not found');
+    }
+
+    // Collect all user-owned MinIO objects (profile picture + cover image, etc.)
+    let objectKey = '';
+    if (user.profilePicture) {
+      objectKey = extractObjectKeyFromUrl(user.profilePicture);
+
+      // Delete files from MinIO
+      deleteFile(objectKey);
+    }
+
+    await user.destroy();
+
+    // Irreversible audit log
+    logger.info(`userId=${user.id} email=${user.email} reason="${reason || ''}"`);
+
+    return true;
+  } catch (error) {
+    if (error instanceof ValidationError || error instanceof NotFoundError) {
+      throw error;
+    }
+
+    logger.error(`Error deleting user account: ${error.message}`);
+    throw new InternalServerError('Failed to delete account');
+  }
+};
+
+const extractObjectKeyFromUrl = (url) => {
+  if (!url) return null;
+  const parts = url.split('/');
+  return parts[parts.length - 1];
+};
+
+// delete object from s3 bucket
+const deleteFile = (key) => {
+  minioClient
+    .removeObject(bucketName, key)
+    .then(() => {
+      logger.info(`Old profile picture deleted: ${key}`);
+    })
+    .catch((error) => {
+      logger.warn(`Failed to delete old profile picture: ${error.message}`);
+    });
+};
+
 module.exports = {
   uploadProfilePicture,
   updateProfileData,
+  deleteUserAccount,
 };

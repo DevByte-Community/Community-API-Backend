@@ -1,9 +1,14 @@
-const { uploadProfilePicture, updateProfileData } = require('../services/userService');
+const {
+  uploadProfilePicture,
+  updateProfileData,
+  deleteUserAccount,
+} = require('../services/userService');
 const createLogger = require('../utils/logger');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { ValidationError } = require('../utils/customErrors');
 const { updateProfileSchema } = require('../utils/validator');
 const Validator = require('../utils/index');
+const { clearAuthCookies } = require('../utils/cookies');
 
 const logger = createLogger('USER_CONTROLLER');
 
@@ -72,8 +77,34 @@ const getProfile = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Delete authenticated user's account
+ * @route DELETE /api/v1/users/account
+ * @access Private
+ */
+const deleteAccount = asyncHandler(async (req, res) => {
+  const body = req.body || {};
+
+  const reason =
+    typeof body.reason === 'string' && body.reason.trim().length > 0
+      ? body.reason.trim()
+      : 'unknown';
+
+  const userId = req.user.id;
+
+  await deleteUserAccount(userId, reason);
+
+  clearAuthCookies(res);
+
+  return res.status(200).json({
+    success: true,
+    message: 'Your account have been permanently deleted',
+  });
+});
+
 module.exports = {
   updateProfilePicture,
   updateProfile,
   getProfile,
+  deleteAccount,
 };
