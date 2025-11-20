@@ -6,7 +6,6 @@ module.exports = {
     await queryInterface.createTable('Users', {
       id: {
         type: Sequelize.UUID,
-        defaultValue: Sequelize.literal('gen_random_uuid()'), // Postgres UUID generator
         allowNull: false,
         primaryKey: true,
       },
