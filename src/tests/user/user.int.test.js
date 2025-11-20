@@ -1,10 +1,8 @@
 // tests/user/user.controller.int.test.js
 const request = require('supertest');
-const { GenericContainer } = require('testcontainers');
+const { getTestContainersManager, resetTestContainersManager } = require('../testContainers');
 
 jest.setTimeout(120000);
-
-let pgC, redisC, minioC, app, db, redisClientModule, agent, minioModule;
 
 // Mock email to avoid SMTP noise in signup or other flows
 jest.mock('../../services/emailService', () => ({
@@ -20,131 +18,37 @@ const TEST_USER = {
   password: 'Password123!',
 };
 
-beforeAll(async () => {
-  // --- Postgres ---
-  pgC = await new GenericContainer('postgres:16-alpine')
-    .withEnvironment({
-      POSTGRES_USER: 'test_user',
-      POSTGRES_PASSWORD: 'test_password',
-      POSTGRES_DB: 'test_db',
-    })
-    .withExposedPorts(5432)
-    .start();
-
-  // --- Redis ---
-  redisC = await new GenericContainer('redis:7').withExposedPorts(6379).start();
-
-  // --- MinIO (API:9000, Console:9001) ---
-  minioC = await new GenericContainer('minio/minio')
-    .withEnvironment({
-      MINIO_ROOT_USER: 'minioadmin',
-      MINIO_ROOT_PASSWORD: 'minioadmin',
-    })
-    .withExposedPorts(9000, 9001)
-    .withCommand(['server', '/data', '--console-address', ':9001'])
-    .start();
-
-  const pgHost = pgC.getHost();
-  const pgPort = pgC.getMappedPort(5432);
-  const redisHost = redisC.getHost();
-  const redisPort = redisC.getMappedPort(6379);
-  const minioHost = minioC.getHost();
-  const minioApiPort = minioC.getMappedPort(9000);
-
-  // --- App env ---
-  process.env.NODE_ENV = 'test';
-
-  // DB
-  process.env.POSTGRES_USER = 'test_user';
-  process.env.POSTGRES_PASSWORD = 'test_password';
-  process.env.POSTGRES_DB = 'test_db';
-  process.env.POSTGRES_HOST = pgHost;
-  process.env.POSTGRES_PORT = String(pgPort);
-
-  // JWT & cookies
-  process.env.JWT_ACCESS_SECRET = 'test-access-secret';
-  process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
-  process.env.ACCESS_TTL = '15m';
-  process.env.REFRESH_TTL = '30d';
-  process.env.AUTH_ACCESS_COOKIE = 'access_token';
-  process.env.AUTH_REFRESH_COOKIE = 'refresh_token';
-  process.env.AUTH_COOKIE_SECURE = 'false'; // HTTP in tests
-  process.env.AUTH_COOKIE_HTTPONLY = 'true';
-  process.env.AUTH_COOKIE_SAMESITE = 'Lax';
-  delete process.env.AUTH_COOKIE_DOMAIN; // host-only cookie
-
-  // Redis
-  process.env.REDIS_HOST = redisHost;
-  process.env.REDIS_PORT = String(redisPort);
-  process.env.REDIS_URL = `redis://${redisHost}:${redisPort}`;
-
-  // MinIO envs your client reads
-  process.env.MINIO_ENDPOINT = minioHost; // host name/ip
-  process.env.MINIO_PORT = String(minioApiPort); // mapped 9000
-  process.env.MINIO_USE_SSL = 'false';
-  process.env.MINIO_ROOT_USER = 'minioadmin';
-  process.env.MINIO_ROOT_PASSWORD = 'minioadmin';
-  process.env.MINIO_BUCKET_NAME = 'devbyte-profile-pictures';
-
-  // Init Redis client (your module API)
-  redisClientModule = require('../../utils/redisClient');
-  if (typeof redisClientModule.initializeRedisClient === 'function') {
-    redisClientModule.initializeRedisClient(process.env.REDIS_URL);
-  }
-  if (redisClientModule.client && typeof redisClientModule.client.connect === 'function') {
-    await redisClientModule.client.connect();
-  }
-
-  // Init MinIO client & bucket (your module)
-  minioModule = require('../../utils/minioClient');
-  minioModule.initializeMinioClient();
-  await minioModule.initializeBucket(); // creates bucket + policy if not exists
-
-  // DB & app
-  db = require('../../models');
-  await db.sequelize.sync({ force: true });
-
-  app = require('../../app');
-
-  // Persist cookies across requests
-  agent = request.agent(app);
-
-  // Signup (sets auth cookies via setAuthCookies)
-  const signupRes = await agent.post('/api/v1/auth/signup').send(TEST_USER);
-  expect([200, 201]).toContain(signupRes.status);
-});
-
-afterAll(async () => {
-  try {
-    if (db?.sequelize) await db.sequelize.close();
-  } catch {
-    /* empty */
-  }
-  try {
-    if (redisClientModule?.disconnect) await redisClientModule.disconnect();
-    else if (redisClientModule?.client?.quit) await redisClientModule.client.quit();
-  } catch {
-    /* empty */
-  }
-  try {
-    if (pgC) await pgC.stop();
-  } catch {
-    /* empty */
-  }
-  try {
-    if (redisC) await redisC.stop();
-  } catch {
-    /* empty */
-  }
-  try {
-    if (minioC) await minioC.stop();
-  } catch {
-    /* empty */
-  }
-  jest.restoreAllMocks();
-});
+let testManager;
+let app;
+let agent;
 
 describe('Users Controller (integration)', () => {
+  beforeAll(async () => {
+    testManager = getTestContainersManager();
+
+    // Start containers + env + Redis + MinIO + DB
+    // We don't need seeded users here because we’ll sign up through the API
+    await testManager.setup({
+      createUsers: false,
+    });
+
+    app = testManager.app;
+    testManager.getModels();
+
+    // Persist cookies across requests
+    agent = request.agent(app);
+
+    // Signup via API to get valid auth cookies for profile endpoint
+    const signupRes = await agent.post('/api/v1/auth/signup').send(TEST_USER);
+    expect([200, 201]).toContain(signupRes.status);
+  });
+
+  afterAll(async () => {
+    await testManager.teardown();
+    resetTestContainersManager();
+    jest.restoreAllMocks();
+  });
+
   describe('GET /api/v1/users/profile', () => {
     it('returns profile with skills[]', async () => {
       const res = await agent.get('/api/v1/users/profile');
