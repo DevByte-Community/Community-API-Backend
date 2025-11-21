@@ -6,11 +6,15 @@
 const mockUploadProfilePicture = jest.fn();
 const mockUpdateProfileData = jest.fn();
 const mockDeleteUserAccount = jest.fn();
+const mockChangeUserPassword = jest.fn();
+
+const mockChangePasswordValidate = jest.fn();
 
 jest.mock('../../services/userService', () => ({
   uploadProfilePicture: mockUploadProfilePicture,
   updateProfileData: mockUpdateProfileData,
   deleteUserAccount: mockDeleteUserAccount,
+  changeUserPassword: mockChangeUserPassword,
 }));
 
 // -------------------------------------------------------
@@ -39,6 +43,17 @@ jest.mock('../../utils/index', () => ({
   validate: (...args) => mockValidate(...args),
 }));
 
+// utils/validator — we override only changePasswordSchema.validate
+jest.mock('../../utils/validator', () => {
+  const actual = jest.requireActual('../../utils/validator');
+  return {
+    ...actual,
+    changePasswordSchema: {
+      validate: (...args) => mockChangePasswordValidate(...args),
+    },
+  };
+});
+
 // -------------------------------------------------------
 // STEP 5: Import controller after mocks
 // -------------------------------------------------------
@@ -47,6 +62,7 @@ const {
   updateProfile,
   getProfile,
   deleteAccount,
+  changePassword,
 } = require('../../controllers/userController');
 const { ValidationError } = require('../../utils/customErrors');
 
@@ -362,6 +378,125 @@ describe('UserController', () => {
       expect(res.clearCookie).not.toHaveBeenCalled();
       expect(res.status).not.toHaveBeenCalled();
       expect(res.json).not.toHaveBeenCalled();
+    });
+  });
+
+  // ======================================================
+  // changePassword TESTS
+  // ======================================================
+  describe('changePassword', () => {
+    it('should call changeUserPassword and return 200 on success', async () => {
+      const req = mockRequest({
+        body: {
+          currentPassword: 'OldPassword123!',
+          newPassword: 'NewPassword456!',
+          confirmPassword: 'NewPassword456!',
+        },
+      });
+      const res = mockResponse();
+
+      // Joi validation success
+      mockChangePasswordValidate.mockReturnValue({
+        error: null,
+        value: {
+          currentPassword: 'OldPassword123!',
+          newPassword: 'NewPassword456!',
+          confirmPassword: 'NewPassword456!',
+        },
+      });
+
+      mockChangeUserPassword.mockResolvedValue(true);
+
+      await changePassword(req, res);
+
+      expect(mockChangePasswordValidate).toHaveBeenCalledWith(req.body);
+      expect(mockChangeUserPassword).toHaveBeenCalledWith(
+        req.user,
+        'OldPassword123!',
+        'NewPassword456!'
+      );
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Password updated successfully',
+      });
+    });
+
+    it('should throw ValidationError when Joi validation fails', async () => {
+      const req = mockRequest({
+        body: {
+          currentPassword: '',
+          newPassword: 'short',
+          confirmPassword: 'mismatch',
+        },
+      });
+      const res = mockResponse();
+
+      mockChangePasswordValidate.mockReturnValue({
+        error: {
+          details: [{ message: 'New password must be at least 8 characters long' }],
+        },
+        value: null,
+      });
+
+      await expect(changePassword(req, res)).rejects.toThrow(ValidationError);
+
+      expect(mockChangePasswordValidate).toHaveBeenCalledWith(req.body);
+      expect(mockChangeUserPassword).not.toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
+    });
+
+    it('should propagate service ValidationError (e.g. wrong current password)', async () => {
+      const req = mockRequest({
+        body: {
+          currentPassword: 'WrongPassword123!',
+          newPassword: 'NewPassword456!',
+          confirmPassword: 'NewPassword456!',
+        },
+      });
+      const res = mockResponse();
+
+      // Validation OK
+      mockChangePasswordValidate.mockReturnValue({
+        error: null,
+        value: {
+          currentPassword: 'WrongPassword123!',
+          newPassword: 'NewPassword456!',
+          confirmPassword: 'NewPassword456!',
+        },
+      });
+
+      const serviceError = new ValidationError('Current password is incorrect');
+      mockChangeUserPassword.mockRejectedValue(serviceError);
+
+      await expect(changePassword(req, res)).rejects.toThrow(ValidationError);
+
+      expect(mockChangeUserPassword).toHaveBeenCalledWith(
+        req.user,
+        'WrongPassword123!',
+        'NewPassword456!'
+      );
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
+    });
+
+    it('should handle missing body (req.body = undefined) via schema', async () => {
+      const req = mockRequest({ body: undefined });
+      const res = mockResponse();
+
+      mockChangePasswordValidate.mockReturnValue({
+        error: {
+          details: [{ message: 'Current password is required' }],
+        },
+        value: null,
+      });
+
+      await expect(changePassword(req, res)).rejects.toThrow(ValidationError);
+
+      expect(mockChangePasswordValidate).toHaveBeenCalledWith({});
+      expect(mockChangeUserPassword).not.toHaveBeenCalled();
     });
   });
 });
