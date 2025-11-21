@@ -2,11 +2,12 @@ const {
   uploadProfilePicture,
   updateProfileData,
   deleteUserAccount,
+  changeUserPassword,
 } = require('../services/userService');
 const createLogger = require('../utils/logger');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { ValidationError } = require('../utils/customErrors');
-const { updateProfileSchema } = require('../utils/validator');
+const { updateProfileSchema, changePasswordSchema } = require('../utils/validator');
 const Validator = require('../utils/index');
 const { clearAuthCookies } = require('../utils/cookies');
 
@@ -102,9 +103,35 @@ const deleteAccount = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Change authenticated user's password
+ * @route PUT /api/v1/users/password
+ * @access Private
+ */
+const changePassword = asyncHandler(async (req, res) => {
+  const body = req.body || {};
+
+  // Validate body with Joi schema
+  const { error, value } = changePasswordSchema.validate(body);
+  if (error) {
+    throw new ValidationError(error.details[0].message);
+  }
+
+  const { currentPassword, newPassword } = value;
+
+  // Service enforces currentPassword correctness + new != current
+  await changeUserPassword(req.user, currentPassword, newPassword);
+
+  return res.status(200).json({
+    success: true,
+    message: 'Password updated successfully',
+  });
+});
+
 module.exports = {
   updateProfilePicture,
   updateProfile,
   getProfile,
   deleteAccount,
+  changePassword,
 };

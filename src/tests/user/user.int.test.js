@@ -175,4 +175,82 @@ describe('Users Controller (integration)', () => {
       expect([401, 403]).toContain(res.status);
     });
   });
+
+  describe('PUT /api/v1/users/password', () => {
+    it('✅ Happy path: correct current → new password → 200', async () => {
+      const signupRes = await agent.post('/api/v1/auth/signup').send(TEST_USER);
+      expect([200, 201]).toContain(signupRes.status);
+
+      const res = await agent.put('/api/v1/users/password').send({
+        currentPassword: TEST_USER.password,
+        newPassword: 'NewPassword456!',
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        success: true,
+        message: 'Password updated successfully',
+      });
+    });
+
+    it('❌ Wrong current password → 400', async () => {
+      const res = await agent.put('/api/v1/users/password').send({
+        currentPassword: 'CompletelyWrong123!',
+        newPassword: 'WhateverNew123!',
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('❌ New password same as old → 400', async () => {
+      const localAgent = request.agent(app);
+      const email = 'same-as-old@example.com';
+      const password = 'SamePassword123!';
+
+      // Signup new user
+      const signupRes = await localAgent.post('/api/v1/auth/signup').send({
+        fullname: 'Same As Old',
+        email,
+        password,
+      });
+      expect([200, 201]).toContain(signupRes.status);
+
+      const res = await localAgent.put('/api/v1/users/password').send({
+        currentPassword: password,
+        newPassword: password,
+        confirmPassword: password,
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('❌ Too short password → 400', async () => {
+      const localAgent = request.agent(app);
+      const email = 'short-pass@example.com';
+      const password = 'ValidPass123!';
+
+      const signupRes = await localAgent.post('/api/v1/auth/signup').send({
+        fullname: 'Short Pass',
+        email,
+        password,
+      });
+      expect([200, 201]).toContain(signupRes.status);
+
+      const res = await localAgent.put('/api/v1/users/password').send({
+        currentPassword: password,
+        newPassword: 'short', // < 8 chars
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('❌ Unauthenticated → 401/403', async () => {
+      const res = await request(app).put('/api/v1/users/password').send({
+        currentPassword: 'anything',
+        newPassword: 'NewPassword123!',
+      });
+
+      expect([401, 403]).toContain(res.status);
+    });
+  });
 });

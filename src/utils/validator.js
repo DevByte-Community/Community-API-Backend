@@ -82,6 +82,18 @@ const assignRoleSchema = Joi.object({
   }),
 });
 
+const changePasswordSchema = Joi.object({
+  currentPassword: Joi.string().min(8).max(72).required().messages({
+    'string.empty': 'Current password is required',
+    'string.max': 'Current password must not exceed 72 characters',
+  }),
+  newPassword: Joi.string().min(8).max(72).required().messages({
+    'string.empty': 'New password is required',
+    'string.min': 'New password must be at least 8 characters long',
+    'string.max': 'New password must not exceed 72 characters',
+  }),
+});
+
 module.exports = {
   signupSchema,
   signinSchema,
@@ -90,4 +102,5 @@ module.exports = {
   resetPasswordSchema,
   updateProfileSchema,
   assignRoleSchema,
+  changePasswordSchema,
 };

@@ -7,10 +7,11 @@ const {
   uploadProfilePicture,
   updateProfileData,
   deleteUserAccount,
+  changeUserPassword,
 } = require('../../services/userService');
 const { minioClient } = require('../../utils/minioClient');
 const { User } = require('../../models');
-const { InternalServerError, NotFoundError } = require('../../utils/customErrors');
+const { InternalServerError, NotFoundError, ValidationError } = require('../../utils/customErrors');
 
 // 🧠 Mock dependencies
 jest.mock('../../utils/minioClient', () => ({
@@ -36,6 +37,13 @@ jest.mock('../../utils/logger', () =>
   }))
 );
 
+const mockCompare = jest.fn();
+const mockHash = jest.fn();
+jest.mock('bcrypt', () => ({
+  compare: (...args) => mockCompare(...args),
+  hash: (...args) => mockHash(...args),
+}));
+
 describe('USER_SERVICE', () => {
   const mockUser = {
     id: 1,
@@ -43,6 +51,7 @@ describe('USER_SERVICE', () => {
     email: 'john@example.com',
     role: 'user',
     profilePicture: 'test-bucket/profile_picture_1.png',
+    password: 'hashed-old-password',
     update: jest.fn().mockResolvedValue(true),
     save: jest.fn().mockResolvedValue(true),
   };
@@ -191,6 +200,81 @@ describe('USER_SERVICE', () => {
 
       // No MinIO call because we never got a user
       expect(minioClient.removeObject).not.toHaveBeenCalled();
+    });
+  });
+
+  // ----------------------------
+  // changeUserPassword Tests
+  // ----------------------------
+  describe('changeUserPassword', () => {
+    it('✅ updates password when current password is correct and new password is valid', async () => {
+      const user = {
+        ...mockUser,
+        update: jest.fn().mockResolvedValue(true),
+      };
+
+      mockCompare.mockResolvedValueOnce(true); // currentPassword matches
+      mockHash.mockResolvedValueOnce('hashed-new-password');
+
+      const result = await changeUserPassword(user, 'OldPassword123!', 'NewPassword456!');
+
+      expect(mockCompare).toHaveBeenCalledWith('OldPassword123!', user.password);
+      expect(mockHash).toHaveBeenCalledWith('NewPassword456!', expect.any(Number));
+      expect(user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          password: 'hashed-new-password',
+          updatedAt: expect.any(Date),
+        })
+      );
+      expect(result).toBe(true);
+    });
+
+    it('❌ throws ValidationError when current password is incorrect', async () => {
+      const user = { ...mockUser };
+
+      mockCompare.mockResolvedValueOnce(false); // bcrypt.compare → false
+
+      await expect(changeUserPassword(user, 'WrongCurrent123!', 'NewPassword456!')).rejects.toThrow(
+        ValidationError
+      );
+
+      expect(mockCompare).toHaveBeenCalledWith('WrongCurrent123!', user.password);
+      expect(mockHash).not.toHaveBeenCalled();
+      expect(user.update).not.toHaveBeenCalled();
+    });
+
+    it('❌ throws ValidationError when new password equals current password (plain text)', async () => {
+      const user = { ...mockUser };
+
+      // current password check passes
+      mockCompare.mockResolvedValueOnce(true);
+
+      await expect(
+        changeUserPassword(user, 'SamePassword123!', 'SamePassword123!')
+      ).rejects.toThrow(ValidationError);
+
+      // we still checked compare, but should NOT hash or update
+      expect(mockCompare).toHaveBeenCalledWith('SamePassword123!', user.password);
+      expect(mockHash).not.toHaveBeenCalled();
+      expect(user.update).not.toHaveBeenCalled();
+    });
+
+    it('⚠️ wraps unexpected errors in InternalServerError (e.g. DB update fails)', async () => {
+      const user = {
+        ...mockUser,
+        update: jest.fn().mockRejectedValue(new Error('DB failure')),
+      };
+
+      mockCompare.mockResolvedValueOnce(true);
+      mockHash.mockResolvedValueOnce('hashed-new-password');
+
+      await expect(changeUserPassword(user, 'OldPassword123!', 'NewPassword456!')).rejects.toThrow(
+        InternalServerError
+      );
+
+      expect(mockCompare).toHaveBeenCalledWith('OldPassword123!', user.password);
+      expect(mockHash).toHaveBeenCalledWith('NewPassword456!', expect.any(Number));
+      expect(user.update).toHaveBeenCalled();
     });
   });
 });

@@ -4,6 +4,7 @@ const {
   updateProfile,
   getProfile,
   deleteAccount,
+  changePassword,
 } = require('../controllers/userController');
 const { authenticateJWT } = require('../middleware/authMiddleware');
 const { handleMulterUpload } = require('../middleware/uploadMiddleware');
@@ -377,5 +378,40 @@ router.get('/profile', authenticateJWT, getProfile);
  *         description: Internal server error
  */
 router.delete('/account', authenticateJWT, deleteAccount);
+
+/**
+ * @swagger
+ * /api/v1/users/password:
+ *   put:
+ *     summary: Change the authenticated user's password
+ *     description: Requires current password verification and enforces strong password policy.
+ *     tags: [User]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Password updated successfully
+ *       400:
+ *         description: Validation error (wrong current, too weak, mismatch, etc.)
+ *       401:
+ *         description: Unauthorized
+ */
+router.put('/password', authenticateJWT, changePassword);
 
 module.exports = router;
