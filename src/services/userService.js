@@ -4,8 +4,10 @@ const createLogger = require('../utils/logger');
 const { ValidationError, NotFoundError, InternalServerError } = require('../utils/customErrors');
 const path = require('path');
 const { User } = require('../models');
+const bcrypt = require('bcrypt');
 
 const logger = createLogger('USER_SERVICE');
+const SALT_ROUNDS = 10;
 
 /**
  * Upload profile picture for a user
@@ -157,6 +159,46 @@ const deleteUserAccount = async (userId, reason) => {
   }
 };
 
+/**
+ * Change user password with current password verification + policy enforcement
+ * @param {string} user
+ * @param {string} currentPassword
+ * @param {string} newPassword
+ */
+const changeUserPassword = async (user, currentPassword, newPassword) => {
+  try {
+    // Verify current password
+    const matches = await bcrypt.compare(currentPassword, user.password);
+    if (!matches) {
+      logger.warn(`invalid current password userId=${user.id}`);
+      throw new ValidationError('Current password is incorrect');
+    }
+
+    // Policy: new password must be different from current
+    if (currentPassword === newPassword) {
+      throw new ValidationError('New password must be different from current password');
+    }
+
+    const hashed = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+    await user.update({
+      password: hashed,
+      updatedAt: new Date(),
+    });
+
+    logger.info(`update password successful for userId=${user.id} email=${user.email}`);
+
+    return true;
+  } catch (error) {
+    if (error instanceof ValidationError || error instanceof NotFoundError) {
+      throw error;
+    }
+
+    logger.error(`Error changing user password: ${error.message}`);
+    throw new InternalServerError('Failed to change password');
+  }
+};
+
 const extractObjectKeyFromUrl = (url) => {
   if (!url) return null;
   const parts = url.split('/');
@@ -179,4 +221,5 @@ module.exports = {
   uploadProfilePicture,
   updateProfileData,
   deleteUserAccount,
+  changeUserPassword,
 };
