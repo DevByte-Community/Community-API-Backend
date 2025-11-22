@@ -2,11 +2,11 @@ const express = require('express');
 
 const skillController = require('../controllers/skillController');
 
-const {authenticateJWT, requireRole} = require('../middleware/authMiddleware');
+const {authenticateJWT, requireAdmin} = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-router.use(authenticateJWT, requireRole('admin'));
+router.use(authenticateJWT, requireAdmin);
 
 /**
  * @swagger
