@@ -17,6 +17,12 @@ jest.mock('../../utils/jwt', () => ({
   verifyRefreshToken: jest.fn(),
 }));
 
+// mock preferenceService
+const mockCreateDefaultUserPreferences = jest.fn();
+jest.mock('../../services/preferenceService', () => ({
+  createDefaultUserPreferences: (...args) => mockCreateDefaultUserPreferences(...args),
+}));
+
 describe('AuthService', () => {
   const mockUser = {
     id: 'user-uuid-123',
@@ -46,6 +52,11 @@ describe('AuthService', () => {
         createdAt: new Date(),
       });
       generateTokens.mockReturnValue({ accessToken: 'acc', refreshToken: 'ref' });
+      mockCreateDefaultUserPreferences.mockResolvedValueOnce({
+        id: 'pref-1',
+        userId: 1,
+      });
+
       const result = await authService.signup({
         fullname: 'John Doe',
         email: 'john@example.com',
@@ -74,6 +85,43 @@ describe('AuthService', () => {
           password: 'password123',
         })
       ).rejects.toThrow('Email already registered.');
+    });
+
+    it('still succeeds if default preferences creation fails (fire-and-forget error)', async () => {
+      bcrypt.hash.mockResolvedValue('hashed_pw');
+
+      const createdUser = {
+        id: 'user-uuid-456',
+        fullname: 'Jane Doe',
+        email: 'jane@example.com',
+        roles: ['USER'],
+        createdAt: new Date(),
+      };
+      User.create.mockResolvedValue(createdUser);
+
+      generateTokens.mockReturnValue({
+        accessToken: 'acc2',
+        refreshToken: 'ref2',
+      });
+
+      // preferences service rejects, but signup should NOT fail
+      mockCreateDefaultUserPreferences.mockRejectedValueOnce(new Error('Prefs service down'));
+
+      const result = await authService.signup({
+        fullname: 'Jane Doe',
+        email: 'jane@example.com',
+        password: 'password123',
+      });
+
+      expect(bcrypt.hash).toHaveBeenCalledWith('password123', 10);
+      expect(User.create).toHaveBeenCalled();
+      expect(mockCreateDefaultUserPreferences).toHaveBeenCalledWith('user-uuid-456');
+      expect(generateTokens).toHaveBeenCalledWith(createdUser);
+      expect(result).toEqual({
+        message: 'User registered successfully',
+        success: true,
+        tokens: { accessToken: 'acc2', refreshToken: 'ref2' },
+      });
     });
   });
 
