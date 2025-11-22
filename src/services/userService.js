@@ -4,8 +4,10 @@ const createLogger = require('../utils/logger');
 const { ValidationError, NotFoundError, InternalServerError } = require('../utils/customErrors');
 const path = require('path');
 const { User } = require('../models');
+const bcrypt = require('bcrypt');
 
 const logger = createLogger('USER_SERVICE');
+const SALT_ROUNDS = 10;
 
 /**
  * Upload profile picture for a user
@@ -31,14 +33,7 @@ const uploadProfilePicture = async (
     if (user.profilePicture) {
       const oldKey = user.profilePicture.split('/').pop();
       // Fire and forget - don't wait for deletion to complete
-      minioClient
-        .removeObject(bucketName, oldKey)
-        .then(() => {
-          logger.info(`Old profile picture deleted: ${oldKey}`);
-        })
-        .catch((error) => {
-          logger.warn(`Failed to delete old profile picture: ${error.message}`);
-        });
+      deleteFile(oldKey);
     }
 
     // Generate unique file name
@@ -125,7 +120,106 @@ const updateProfileData = async (user, updates) => {
   }
 };
 
+/**
+ * Permanently delete a user account (soft-delete row + delete MinIO files)
+ * @param {string} userId - ID of the authenticated user
+ * @param {string|undefined} reason - Optional reason for deletion
+ */
+const deleteUserAccount = async (userId, reason) => {
+  try {
+    const user = await User.findByPk(userId);
+
+    if (!user) {
+      logger.warn(`ACCOUNT_DELETE: user not found userId=${userId}`);
+      throw new NotFoundError('User not found');
+    }
+
+    // Collect all user-owned MinIO objects (profile picture + cover image, etc.)
+    let objectKey = '';
+    if (user.profilePicture) {
+      objectKey = extractObjectKeyFromUrl(user.profilePicture);
+
+      // Delete files from MinIO
+      deleteFile(objectKey);
+    }
+
+    await user.destroy();
+
+    // Irreversible audit log
+    logger.info(`userId=${user.id} email=${user.email} reason="${reason || ''}"`);
+
+    return true;
+  } catch (error) {
+    if (error instanceof ValidationError || error instanceof NotFoundError) {
+      throw error;
+    }
+
+    logger.error(`Error deleting user account: ${error.message}`);
+    throw new InternalServerError('Failed to delete account');
+  }
+};
+
+/**
+ * Change user password with current password verification + policy enforcement
+ * @param {string} user
+ * @param {string} currentPassword
+ * @param {string} newPassword
+ */
+const changeUserPassword = async (user, currentPassword, newPassword) => {
+  try {
+    // Verify current password
+    const matches = await bcrypt.compare(currentPassword, user.password);
+    if (!matches) {
+      logger.warn(`invalid current password userId=${user.id}`);
+      throw new ValidationError('Current password is incorrect');
+    }
+
+    // Policy: new password must be different from current
+    if (currentPassword === newPassword) {
+      throw new ValidationError('New password must be different from current password');
+    }
+
+    const hashed = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+    await user.update({
+      password: hashed,
+      updatedAt: new Date(),
+    });
+
+    logger.info(`update password successful for userId=${user.id} email=${user.email}`);
+
+    return true;
+  } catch (error) {
+    if (error instanceof ValidationError || error instanceof NotFoundError) {
+      throw error;
+    }
+
+    logger.error(`Error changing user password: ${error.message}`);
+    throw new InternalServerError('Failed to change password');
+  }
+};
+
+const extractObjectKeyFromUrl = (url) => {
+  if (!url) return null;
+  const parts = url.split('/');
+  return parts[parts.length - 1];
+};
+
+// delete object from s3 bucket
+const deleteFile = (key) => {
+  minioClient
+    .removeObject(bucketName, key)
+    .then(() => {
+      logger.info(`Old profile picture deleted: ${key}`);
+    })
+    .catch((error) => {
+      logger.warn(`Failed to delete old profile picture: ${error.message}`);
+    });
+};
+
 module.exports = {
   uploadProfilePicture,
   updateProfileData,
+  deleteUserAccount,
+  changeUserPassword,
 };

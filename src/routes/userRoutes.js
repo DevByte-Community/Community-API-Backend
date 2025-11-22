@@ -3,6 +3,8 @@ const {
   updateProfilePicture,
   updateProfile,
   getProfile,
+  deleteAccount,
+  changePassword,
 } = require('../controllers/userController');
 const { authenticateJWT } = require('../middleware/authMiddleware');
 const { handleMulterUpload } = require('../middleware/uploadMiddleware');
@@ -17,7 +19,7 @@ const router = express.Router();
  *     description: Upload a profile picture for the authenticated user. The image will be stored in MinIO and the URL will be saved to the user's profile.
  *     tags: [User]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -182,7 +184,7 @@ router.patch(
  *     description: Update the authenticated user's profile details such as fullname and email address. The endpoint validates email uniqueness before updating.
  *     tags: [User]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -259,7 +261,7 @@ router.patch('/profile', authenticateJWT, updateProfile);
  *     description: Get user's profile details such as id, fullname, roles, skills and email address. The endpoint validates access token.
  *     tags: [User]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: Get profile successfully
@@ -327,5 +329,89 @@ router.patch('/profile', authenticateJWT, updateProfile);
  *         description: Internal server error
  */
 router.get('/profile', authenticateJWT, getProfile);
+
+/**
+ * @swagger
+ * /api/v1/users/account:
+ *   delete:
+ *     summary: Permanently delete the authenticated user's account
+ *     description: |
+ *       Implements GDPR/CCPA "right to be forgotten".
+ *       Requires re-authentication with current password and will:
+ *       - Soft-delete the user row
+ *       - Delete user-owned media from MinIO
+ *       - Clear access_token and refresh_token cookies
+ *     tags: [User]
+ *     security:
+ *       - cookiesAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Optional reason for deleting the account (e.g. "privacy")
+ *     responses:
+ *       200:
+ *         description: Account deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Your account and all data have been permanently deleted
+ *       401:
+ *         description: Unauthorized or invalid password
+ *       404:
+ *         description: User not found or already deleted
+ *       500:
+ *         description: Internal server error
+ */
+router.delete('/account', authenticateJWT, deleteAccount);
+
+/**
+ * @swagger
+ * /api/v1/users/password:
+ *   put:
+ *     summary: Change the authenticated user's password
+ *     description: Requires current password verification and enforces strong password policy.
+ *     tags: [User]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Password updated successfully
+ *       400:
+ *         description: Validation error (wrong current, too weak, mismatch, etc.)
+ *       401:
+ *         description: Unauthorized
+ */
+router.put('/password', authenticateJWT, changePassword);
 
 module.exports = router;

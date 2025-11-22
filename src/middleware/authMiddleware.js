@@ -88,35 +88,32 @@ const authenticateJWT = (req, res, next) => {
 };
 
 /**
- * Role guards
+ * Middleware to check if user has minimum required role
+ * Uses hierarchical role checking
+ *
+ * @param {string} minRole - Minimum role required (USER, ADMIN, or ROOT)
  */
-const requireRole =
-  (...requiredRoles) =>
-  (req, _res, next) => {
-    if (!req.user) {
-      return next(new UnauthorizedError('Not authenticated.'));
-    }
-    // const userRoles = Array.isArray(req.user.roles) ? req.user.dataValues.role : [];
-    // console.log('User roles:', userRoles);
-    // console.log('req.user:', req.user);
-    let userRoles = [];
-    if (Array.isArray(req.user.roles)) {
-      userRoles = req.user.roles.map(r => r.toLowerCase());
-    } else if (typeof req.user.role === 'string') {
-      userRoles = [req.user.role.toLowerCase()];
-    } else if (req.user.dataValues && typeof req.user.dataValues.role === 'string') {
-      userRoles = [req.user.dataValues.role.toLowerCase()];
-    }
-    const required = requiredRoles.map(r => r.toLowerCase());
-    console.log('User roles:', userRoles);
-    console.log('req.user:', req.user);
-    const ok = requiredRoles.every((r) => userRoles.includes(r));
-    if (!ok) {
-      return next(new UnauthorizedError('Insufficient permissions.'));
-    }
-    return next();
-  };
-module.exports = { passport, authenticateJWT, requireRole };
-// module.exports = passport;
-// module.exports.authenticateJWT = authenticateJWT;
-// module.exports.requireRole = requireRole;
+const requireRole = (minRole) => (req, _res, next) => {
+  if (!req.user) {
+    return next(new UnauthorizedError('Not authenticated.'));
+  }
+
+  if (!req.user.hasRole(minRole)) {
+    return next(
+      new UnauthorizedError(`Insufficient permissions. Minimum required role: ${minRole}`)
+    );
+  }
+
+  return next();
+};
+
+/**
+ * Convenience middleware for common role requirements
+ */
+const requireAdmin = requireRole('ADMIN');
+const requireRoot = requireRole('ROOT');
+
+module.exports = passport;
+module.exports.authenticateJWT = authenticateJWT;
+module.exports.requireAdmin = requireAdmin;
+module.exports.requireRoot = requireRoot;

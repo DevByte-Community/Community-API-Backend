@@ -1,5 +1,6 @@
 'use strict';
 const { Model } = require('sequelize');
+const { uuidv7 } = require('uuidv7');
 
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
@@ -7,13 +8,45 @@ module.exports = (sequelize, DataTypes) => {
       // define associations here if needed later
       // e.g., User.belongsToMany(models.Skill, { through: 'UserSkills', foreignKey: 'userId' });
     }
+
+    /**
+     * Check if user has sufficient role permissions
+     * @param {string} requiredRole - The role to check against
+     * @returns {boolean}
+     */
+    hasRole(requiredRole) {
+      const hierarchy = { USER: 1, ADMIN: 2, ROOT: 3 };
+      return hierarchy[this.role] >= hierarchy[requiredRole];
+    }
+
+    /**
+     * Check if user can assign a specific role
+     * @param {string} targetRole - The role to be assigned
+     * @returns {boolean}
+     */
+    canAssignRole(targetRole) {
+      // ROOT can only be assigned by system (not through API)
+      if (targetRole === 'ROOT') return false;
+
+      // ADMIN and ROOT can assign ADMIN
+      if (targetRole === 'ADMIN') {
+        return this.role === 'ADMIN' || this.role === 'ROOT';
+      }
+
+      // ADMIN and ROOT can assign USER
+      if (targetRole === 'USER') {
+        return this.role === 'ADMIN' || this.role === 'ROOT';
+      }
+
+      return false;
+    }
   }
 
   User.init(
     {
       id: {
         type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
+        defaultValue: () => uuidv7(),
         primaryKey: true,
       },
       fullname: {
@@ -31,7 +64,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       role: {
-        type: DataTypes.ENUM('USER', 'ADMIN'),
+        type: DataTypes.ENUM('USER', 'ADMIN', 'ROOT'),
         allowNull: false,
         defaultValue: 'USER',
       },

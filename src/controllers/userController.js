@@ -1,9 +1,15 @@
-const { uploadProfilePicture, updateProfileData } = require('../services/userService');
+const {
+  uploadProfilePicture,
+  updateProfileData,
+  deleteUserAccount,
+  changeUserPassword,
+} = require('../services/userService');
 const createLogger = require('../utils/logger');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { ValidationError } = require('../utils/customErrors');
-const { updateProfileSchema } = require('../utils/validator');
+const { updateProfileSchema, changePasswordSchema } = require('../utils/validator');
 const Validator = require('../utils/index');
+const { clearAuthCookies } = require('../utils/cookies');
 
 const logger = createLogger('USER_CONTROLLER');
 
@@ -55,11 +61,15 @@ const updateProfile = asyncHandler(async (req, res) => {
 
 const getProfile = asyncHandler(async (req, res) => {
   try {
-    logger.info(`Get Profile successful for userId=${req.user.id}`);
+    const { password, ...user } = req.user.dataValues;
+    logger.info(
+      `Get Profile successful for userId=${req.user.dataValues.id}, ${password.slice(0, 1)}`
+    );
+
     return res.status(200).json({
       success: true,
       message: 'Get Profile successfully',
-      user: { ...req.user.dataValues, skills: [] },
+      user: { ...user, skills: [] },
     });
   } catch (err) {
     logger.error(`get user profile failed for userId=${req.user?.id} - ${err.message}`);
@@ -68,8 +78,60 @@ const getProfile = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Delete authenticated user's account
+ * @route DELETE /api/v1/users/account
+ * @access Private
+ */
+const deleteAccount = asyncHandler(async (req, res) => {
+  const body = req.body || {};
+
+  const reason =
+    typeof body.reason === 'string' && body.reason.trim().length > 0
+      ? body.reason.trim()
+      : 'unknown';
+
+  const userId = req.user.id;
+
+  await deleteUserAccount(userId, reason);
+
+  clearAuthCookies(res);
+
+  return res.status(200).json({
+    success: true,
+    message: 'Your account have been permanently deleted',
+  });
+});
+
+/**
+ * Change authenticated user's password
+ * @route PUT /api/v1/users/password
+ * @access Private
+ */
+const changePassword = asyncHandler(async (req, res) => {
+  const body = req.body || {};
+
+  // Validate body with Joi schema
+  const { error, value } = changePasswordSchema.validate(body);
+  if (error) {
+    throw new ValidationError(error.details[0].message);
+  }
+
+  const { currentPassword, newPassword } = value;
+
+  // Service enforces currentPassword correctness + new != current
+  await changeUserPassword(req.user, currentPassword, newPassword);
+
+  return res.status(200).json({
+    success: true,
+    message: 'Password updated successfully',
+  });
+});
+
 module.exports = {
   updateProfilePicture,
   updateProfile,
   getProfile,
+  deleteAccount,
+  changePassword,
 };

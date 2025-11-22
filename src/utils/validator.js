@@ -70,6 +70,30 @@ const updateProfileSchema = Joi.object({
   email: Joi.string().email().optional(),
 }).min(1); // At least one field must be provided
 
+const assignRoleSchema = Joi.object({
+  userId: Joi.string().required().messages({
+    'string.empty': 'User ID is required',
+    'any.required': 'User ID is required',
+  }),
+  role: Joi.string().valid('USER', 'ADMIN').required().messages({
+    'string.empty': 'Role is required',
+    'any.required': 'Role is required',
+    'any.only': 'Role must be one of: USER, ADMIN',
+  }),
+});
+
+const changePasswordSchema = Joi.object({
+  currentPassword: Joi.string().min(8).max(72).required().messages({
+    'string.empty': 'Current password is required',
+    'string.max': 'Current password must not exceed 72 characters',
+  }),
+  newPassword: Joi.string().min(8).max(72).required().messages({
+    'string.empty': 'New password is required',
+    'string.min': 'New password must be at least 8 characters long',
+    'string.max': 'New password must not exceed 72 characters',
+  }),
+});
+
 module.exports = {
   signupSchema,
   signinSchema,
@@ -77,4 +101,6 @@ module.exports = {
   verifyOtpSchema,
   resetPasswordSchema,
   updateProfileSchema,
+  assignRoleSchema,
+  changePasswordSchema,
 };
