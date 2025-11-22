@@ -4,9 +4,14 @@ const { uuidv7 } = require('uuidv7');
 
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
-    static associate(_models) {
+    static associate(models) {
       // define associations here if needed later
       // e.g., User.belongsToMany(models.Skill, { through: 'UserSkills', foreignKey: 'userId' });
+      User.hasOne(models.Preference, {
+        foreignKey: 'userId',
+        as: 'preferences',
+        onDelete: 'CASCADE',
+      });
     }
 
     /**

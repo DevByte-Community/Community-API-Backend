@@ -4,6 +4,7 @@ const { UniqueConstraintError } = require('sequelize');
 const { User } = require('../models');
 const { generateTokens, verifyRefreshToken } = require('../utils/jwt');
 const createLogger = require('../utils/logger');
+const { createDefaultUserPreferences } = require('./preferenceService');
 
 const logger = createLogger('AUTH_SERVICE');
 
@@ -11,19 +12,31 @@ const SALT_ROUNDS = 10;
 
 class AuthService {
   async signup({ fullname, email, password }) {
-    // Here i hash password
+    // Here we hash password
     const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
 
     try {
-      // Here i create user
+      // Here we create user
       const user = await User.create({
         fullname,
         email,
         password: password_hash,
-        roles: ['USER'],
+        roles: 'USER',
       });
+      // Fire-and-forget default preferences creation
+      void createDefaultUserPreferences(user.id)
+        .then((preferences) => {
+          logger.info(
+            `User default preferences created after signup, userId=${user.id} preferencesId=${preferences.id}`
+          );
+        })
+        .catch((err) => {
+          logger.error(
+            `Failed to create default preferences for userId=${user.id} email=${email} - ${err.message}`
+          );
+        });
 
-      // Here i generate JWT & refresh token
+      // Here we generate JWT & refresh token
       const { accessToken, refreshToken } = generateTokens(user);
 
       return {
@@ -45,7 +58,7 @@ class AuthService {
   }
 
   async signin({ email, password }) {
-    // Here i find user by email
+    // Here we find user by email
     const user = await User.findOne({ where: { email } });
     if (!user) {
       const error = new Error('Invalid credentials.');
@@ -53,7 +66,7 @@ class AuthService {
       throw error;
     }
 
-    // Here i compare password
+    // Here we compare password
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
       const error = new Error('Invalid credentials.');
@@ -62,7 +75,7 @@ class AuthService {
     }
 
     try {
-      // Here i generate JWT & refresh token
+      // Here we generate JWT & refresh token
       const { accessToken, refreshToken } = generateTokens(user);
 
       return {
