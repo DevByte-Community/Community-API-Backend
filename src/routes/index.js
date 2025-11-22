@@ -16,9 +16,6 @@ const dbRoutes = require('./dbRoutes');
 const authRoutes = require('./authRoutes');
 const skillRoutes = require('./skillRoutes');
 
-const passport = require('../middleware/authMiddleware');
-const requireAdmin = require('../middleware/adminMiddleware');
-
 const router = express.Router();
 
 router.use('/members', memberRoutes);
@@ -29,12 +26,7 @@ router.use('/jobs', jobRoutes);
 router.use('/blogs', blogRoutes);
 router.use('/users', userRoutes);
 router.use('/auth', authRoutes);
-router.use(
-  '/admin',
-  passport.authenticate('jwt', { session: false }),
-  requireAdmin,
-  skillRoutes
-);
+router.use('/admin', skillRoutes);
 
 // DB test route
 router.use('/test', dbRoutes);

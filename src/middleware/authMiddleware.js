@@ -2,8 +2,8 @@
 const passport = require('passport');
 const { Strategy: JwtStrategy } = require('passport-jwt');
 const { UnauthorizedError } = require('../utils/customErrors');
-
 const { User } = require('../models');
+const { cfg } = require('../utils/cookies');
 
 /**
  * Custom extractor: prefer HttpOnly cookie, fall back to Authorization header.
@@ -96,14 +96,27 @@ const requireRole =
     if (!req.user) {
       return next(new UnauthorizedError('Not authenticated.'));
     }
-    const userRoles = Array.isArray(req.user.roles) ? req.user.roles : [];
+    // const userRoles = Array.isArray(req.user.roles) ? req.user.dataValues.role : [];
+    // console.log('User roles:', userRoles);
+    // console.log('req.user:', req.user);
+    let userRoles = [];
+    if (Array.isArray(req.user.roles)) {
+      userRoles = req.user.roles.map(r => r.toLowerCase());
+    } else if (typeof req.user.role === 'string') {
+      userRoles = [req.user.role.toLowerCase()];
+    } else if (req.user.dataValues && typeof req.user.dataValues.role === 'string') {
+      userRoles = [req.user.dataValues.role.toLowerCase()];
+    }
+    const required = requiredRoles.map(r => r.toLowerCase());
+    console.log('User roles:', userRoles);
+    console.log('req.user:', req.user);
     const ok = requiredRoles.every((r) => userRoles.includes(r));
     if (!ok) {
       return next(new UnauthorizedError('Insufficient permissions.'));
     }
     return next();
   };
-
-module.exports = passport;
-module.exports.authenticateJWT = authenticateJWT;
-module.exports.requireRole = requireRole;
+module.exports = { passport, authenticateJWT, requireRole };
+// module.exports = passport;
+// module.exports.authenticateJWT = authenticateJWT;
+// module.exports.requireRole = requireRole;

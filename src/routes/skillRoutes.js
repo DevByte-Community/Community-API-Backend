@@ -2,7 +2,11 @@ const express = require('express');
 
 const skillController = require('../controllers/skillController');
 
+const {authenticateJWT, requireRole} = require('../middleware/authMiddleware');
+
 const router = express.Router();
+
+router.use(authenticateJWT, requireRole('admin'));
 
 /**
  * @swagger
@@ -87,7 +91,7 @@ router.post('/skills', skillController.create);
 /**
  * @swagger
  * /api/v1/admin/skills/{id}:
- *   put:
+ *   patch:
  *     summary: Update an existing skill (Admin Only)
  *     tags: [SKILL]
  *     parameters:
@@ -200,7 +204,7 @@ router.post('/skills', skillController.create);
  *                   type: string
  *                   example: Failed to update skill due to a server error
  */
-router.put('/skills/:id', skillController.update);
+router.patch('/skills/:id', skillController.update);
 
 /**
  * @swagger

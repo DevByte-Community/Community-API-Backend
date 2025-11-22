@@ -26,7 +26,7 @@ class SkillController {
     }
   }
 
-  // PUT /api/v1/admin/skills/:id
+  // PATCH /api/v1/admin/skills/:id
   async update(req, res) {
     try {
       // Validate URL Parameters (ID)
