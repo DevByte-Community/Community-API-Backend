@@ -6,7 +6,6 @@ module.exports = {
     await queryInterface.createTable('Skills', {
       id: {
         type: Sequelize.UUID,
-        defaultValue: Sequelize.UUIDV4,
         allowNull: false,
         primaryKey: true,
       },
@@ -17,6 +16,16 @@ module.exports = {
       },
       description: {
         type: Sequelize.TEXT,
+      },
+      userId: {
+        type: Sequelize.UUID,
+        allowNull: false,
+        references: {
+          model: 'Users', 
+          key: 'id',
+        },
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
       },
       createdAt: {
         allowNull: false,
