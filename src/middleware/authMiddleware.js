@@ -56,7 +56,7 @@ const authenticateJWT = (req, res, next) => {
   if (!token) {
     return next(
       new UnauthorizedError(
-        `Authentication required. Provide a valid token via HttpOnly cookie "${cfg.ACCESS_COOKIE}".`
+        `Authentication required. Provide a valid token via HttpOnly cookie ${cfg.ACCESS_COOKIE}.`
       )
     );
   }
