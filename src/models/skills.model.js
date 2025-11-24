@@ -1,9 +1,14 @@
 'use strict';
 const { Model } = require('sequelize');
+const { uuidv7 } = require('uuidv7');
 
 module.exports = (sequelize, DataTypes) => {
   class Skill extends Model {
-    static associate(_models) {
+    static associate(models) {
+      Skill.belongsTo(models.User, {
+        foreignKey: 'userId',
+        as: 'user',
+      });
       // A skill can belong to many users
       // Skill.belongsToMany(models.User, {
       //   through: 'UserSkills',
@@ -17,20 +22,37 @@ module.exports = (sequelize, DataTypes) => {
     {
       id: {
         type: DataTypes.UUID,
+        defaultValue: () => uuidv7(),
         primaryKey: true,
-        defaultValue: DataTypes.UUIDV4,
       },
       name: {
         type: DataTypes.STRING,
+        unique: true,
         allowNull: false,
       },
       description: DataTypes.TEXT,
+      userId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+          model: 'Users',
+          key: 'id',
+        },
+      },
     },
+
     {
       sequelize,
       modelName: 'Skill',
       tableName: 'Skills',
       timestamps: true,
+      indexes: [
+        {
+          // This creates a case-insensitive unique index
+          unique: true,
+          fields: [sequelize.fn('lower', sequelize.col('name'))],
+        },
+      ],
     }
   );
 

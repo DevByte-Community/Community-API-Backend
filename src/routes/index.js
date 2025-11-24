@@ -14,6 +14,7 @@ const blogRoutes = require('./blogRoutes');
 const userRoutes = require('./userRoutes');
 const dbRoutes = require('./dbRoutes');
 const authRoutes = require('./authRoutes');
+const skillRoutes = require('./skillRoutes');
 const roleRoutes = require('./roleRoutes');
 const prefRoutes = require('./preferenceRoute');
 
@@ -27,6 +28,7 @@ router.use('/jobs', jobRoutes);
 router.use('/blogs', blogRoutes);
 router.use('/users', userRoutes);
 router.use('/auth', authRoutes);
+router.use('/admin', skillRoutes);
 router.use('/roles', roleRoutes);
 router.use('/users/me', prefRoutes);
 
