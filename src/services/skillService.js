@@ -2,6 +2,7 @@
 const { Skill } = require('../models');
 const { UniqueConstraintError } = require('sequelize');
 const createLogger = require('../utils/logger');
+const { UniqueViolationError, NotFoundError, InternalServerError } = require('../utils/customErrors');
 
 const logger = createLogger('SKILL_SERVICE');
 
@@ -30,16 +31,15 @@ class SkillService {
         },
       };
     } catch (err) {
-      if (err instanceof UniqueConstraintError) {
-        const uniqueError = new Error('This skill already exists.');
-        uniqueError.statusCode = 409;
-        throw uniqueError;
+      logger.error(`Failed to create skill ${name} - ${err.message}`);
+
+      // Re-throw custom errors
+       if (err instanceof UniqueConstraintError) {
+        throw new UniqueViolationError('This skill already exists.');
       }
 
-      logger.error(`Failed to create skill ${name} - ${err.message}`);
-      const serverError = new Error('Failed to create skill due to a server error.');
-      serverError.statusCode = 500;
-      throw serverError;
+      // Wrap other errors in InternalServerError
+      throw new InternalServerError(`Failed to create skill: ${err.message}`);
     }
   }
 
@@ -48,9 +48,7 @@ class SkillService {
       const skill = await Skill.findByPk(id);
 
       if (!skill) {
-        const error = new Error('Skill not found');
-        error.statusCode = 404;
-        throw error;
+        throw new NotFoundError('Skill not found');
       }
 
       if (name) {
@@ -91,20 +89,18 @@ class SkillService {
         };
       }
     } catch (err) {
+      logger.error(`Failed to update skill - ${err.message}`);
+
       if (err instanceof UniqueConstraintError) {
-        const uniqueError = new Error('This skill already exists.');
-        uniqueError.statusCode = 409;
-        throw uniqueError;
+        throw new UniqueViolationError('This skill already exists.');
       }
 
       if (err.statusCode) {
         throw err;
       }
 
-      logger.error(`Failed to update skill - ${err.message}`);
-      const serverError = new Error('Failed to update skill due to a server error.');
-      serverError.statusCode = 500;
-      throw serverError;
+       // Wrap other errors in InternalServerError
+      throw new InternalServerError(`Failed to update skill: ${err.message}`)
     }
   }
 
@@ -148,9 +144,9 @@ class SkillService {
       };
     } catch (err) {
       logger.error(`Failed to retrieve paginated skills: ${err.message}`);
-      const serverError = new Error('Failed to retrieve skills due to a server error.');
-      serverError.statusCode = 500;
-      throw serverError;
+
+       // Wrap other errors in InternalServerError
+      throw new InternalServerError(`Failed to retrieve skills: ${err.message}`);
     }
   }
 
@@ -159,9 +155,7 @@ class SkillService {
       const skill = await Skill.findByPk(id);
 
       if (!skill) {
-        const error = new Error('Skill not found');
-        error.statusCode = 400;
-        throw error;
+        throw new NotFoundError('Skill not found');
       }
 
       const deleteRows = await Skill.destroy({ where: { id: id } });
@@ -178,14 +172,14 @@ class SkillService {
         message: 'Skill deleted successfully',
       };
     } catch (err) {
+      logger.error(`Failed to delete skill: ${err.message}`);
+
       if (err.statusCode) {
         throw err;
       }
 
-      logger.error(`Failed to delete skill - ${err.message}`);
-      const serverError = new Error('Failed to delete skill due to a server error.');
-      serverError.statusCode = 500;
-      throw serverError;
+      // Wrap other errors in InternalServerError
+      throw new InternalServerError(`Failed to delete skill: ${err.message}`);
     }
   }
 }

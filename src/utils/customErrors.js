@@ -55,6 +55,13 @@ class InternalServerError extends AppError {
   }
 }
 
+class UniqueViolationError extends AppError {
+  constructor(message = 'Resource already exists.') {
+    super(message, 409);
+    this.name = "UniqueViolationError";
+  }
+}
+
 module.exports = {
   AppError,
   ValidationError,
@@ -63,4 +70,5 @@ module.exports = {
   ForbiddenError,
   ConflictError,
   InternalServerError,
+  UniqueViolationError,
 };
