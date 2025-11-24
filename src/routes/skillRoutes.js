@@ -1,8 +1,13 @@
 const express = require('express');
 
-const skillController = require('../controllers/skillController');
+const {
+  createSkill,
+  updateSkill,
+  getSkills,
+  deleteSkill,
+} = require('../controllers/skillController');
 
-const {authenticateJWT, requireAdmin} = require('../middleware/authMiddleware');
+const { authenticateJWT, requireAdmin } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
@@ -85,8 +90,7 @@ router.use(authenticateJWT, requireAdmin);
  *                   type: string
  *                   example: Internal server error
  */
-router.post('/skills', skillController.create);
-
+router.post('/skills', createSkill);
 
 /**
  * @swagger
@@ -204,7 +208,7 @@ router.post('/skills', skillController.create);
  *                   type: string
  *                   example: Failed to update skill due to a server error
  */
-router.patch('/skills/:id', skillController.update);
+router.patch('/skills/:id', updateSkill);
 
 /**
  * @swagger
@@ -316,7 +320,7 @@ router.patch('/skills/:id', skillController.update);
  *                   type: string
  *                   example: Failed to retrieve skills due to a server error
  */
-router.get('/skills', skillController.getSkills);
+router.get('/skills', getSkills);
 
 /**
  * @swagger
@@ -387,6 +391,6 @@ router.get('/skills', skillController.getSkills);
  *                   example: Failed to delete skill due to a server error
  */
 
-router.delete('/skills/:id', skillController.delete);
+router.delete('/skills/:id', deleteSkill);
 
 module.exports = router;

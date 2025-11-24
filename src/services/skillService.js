@@ -11,11 +11,12 @@ class SkillService {
    * Creates a new skill record in the database.
    * @param {object} data - Object containing validated skill data (name, description).
    */
-  async create({ name, description }) {
+  async create({ name, description, userId }) {
     try {
       const skill = await Skill.create({
         name,
         description: description || '',
+        userId
       });
 
       logger.info(`${name} skill sucessfully created.`);

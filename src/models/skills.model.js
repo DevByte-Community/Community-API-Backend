@@ -1,5 +1,6 @@
 'use strict';
 const { Model } = require('sequelize');
+const { uuidv7 } = require('uuidv7');
 
 module.exports = (sequelize, DataTypes) => {
   class Skill extends Model {
