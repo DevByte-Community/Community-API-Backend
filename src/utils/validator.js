@@ -1,5 +1,9 @@
 // src/utils/validator.js
 const Joi = require('joi');
+const momentTz = require('moment-timezone');
+
+const allowedLanguages = ['en', 'fr', 'es', 'de', 'it', 'pt', 'nl']; // extend as needed
+const allowedAppearances = ['light', 'dark', 'system'];
 
 // Here i define validation schemas for user input on Signup
 const signupSchema = Joi.object({
@@ -94,6 +98,38 @@ const changePasswordSchema = Joi.object({
   }),
 });
 
+const preferencesUpdateSchema = Joi.object({
+  visibility: Joi.boolean(),
+  notification: Joi.boolean(),
+  newsletter: Joi.boolean(),
+  appearance: Joi.string()
+    .valid(...allowedAppearances)
+    .messages({
+      'any.only': `appearance must be one of: ${allowedAppearances.join(', ')}`,
+    }),
+  language: Joi.string()
+    .length(2)
+    .lowercase()
+    .valid(...allowedLanguages)
+    .messages({
+      'any.only': `language must be a valid ISO 639-1 code (${allowedLanguages.join(', ')})`,
+    }),
+  timezone: Joi.string()
+    .custom((value, helpers) => {
+      if (!momentTz.tz.zone(value)) {
+        return helpers.error('any.invalid');
+      }
+      return value;
+    })
+    .messages({
+      'any.invalid': 'timezone must be a valid IANA timezone (e.g., UTC, Africa/Douala)',
+    }),
+})
+  .min(1)
+  .messages({
+    'object.min': 'At least one preference field must be provided',
+  });
+
 module.exports = {
   signupSchema,
   signinSchema,
@@ -103,4 +139,5 @@ module.exports = {
   updateProfileSchema,
   assignRoleSchema,
   changePasswordSchema,
+  preferencesUpdateSchema,
 };
