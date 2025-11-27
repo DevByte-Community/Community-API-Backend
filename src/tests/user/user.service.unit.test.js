@@ -329,7 +329,7 @@ describe('USER_SERVICE', () => {
       expect(result.data).toEqual(mockUsers);
       expect(result.pagination).toEqual({
         currentPage: 1,
-        limit: 10,
+        pageSize: 10,
         totalCount: 2,
         totalPages: 1,
         hasNextPage: false,
@@ -337,11 +337,11 @@ describe('USER_SERVICE', () => {
       });
     });
 
-    it('✅ should return paginated users with custom page and limit', async () => {
+    it('✅ should return paginated users with custom page and pageSize', async () => {
       mockCount.mockResolvedValueOnce(25);
       mockFindAll.mockResolvedValueOnce(mockUsers);
 
-      const result = await getAllUsers({ page: 2, limit: 10 });
+      const result = await getAllUsers({ page: 2, pageSize: 10 });
 
       expect(mockFindAll).toHaveBeenCalledWith({
         attributes: { exclude: ['password'] },
@@ -351,7 +351,7 @@ describe('USER_SERVICE', () => {
       });
       expect(result.pagination).toEqual({
         currentPage: 2,
-        limit: 10,
+        pageSize: 10,
         totalCount: 25,
         totalPages: 3,
         hasNextPage: true,
@@ -364,14 +364,14 @@ describe('USER_SERVICE', () => {
       mockFindAll.mockResolvedValueOnce(mockUsers);
 
       // First page
-      const result1 = await getAllUsers({ page: 1, limit: 10 });
+      const result1 = await getAllUsers({ page: 1, pageSize: 10 });
       expect(result1.pagination.hasNextPage).toBe(true);
       expect(result1.pagination.hasPrevPage).toBe(false);
 
       // Last page
       mockCount.mockResolvedValueOnce(50);
       mockFindAll.mockResolvedValueOnce(mockUsers);
-      const result2 = await getAllUsers({ page: 5, limit: 10 });
+      const result2 = await getAllUsers({ page: 5, pageSize: 10 });
       expect(result2.pagination.hasNextPage).toBe(false);
       expect(result2.pagination.hasPrevPage).toBe(true);
     });

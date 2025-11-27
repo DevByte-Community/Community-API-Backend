@@ -144,12 +144,12 @@ const getAllUsersController = asyncHandler(async (req, res) => {
     throw new ValidationError(error.details[0].message);
   }
 
-  const { page, limit } = value;
+  const { page, pageSize } = value;
 
   // Get paginated users
-  const result = await getAllUsers({ page, limit });
+  const result = await getAllUsers({ page, pageSize });
 
-  logger.info(`Retrieved users list - page ${page}, limit ${limit}`);
+  logger.info(`Retrieved users list - page ${page}, pageSize ${pageSize}`);
 
   return res.status(200).json({
     success: true,

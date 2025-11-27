@@ -530,7 +530,7 @@ describe('UserController', () => {
       ],
       pagination: {
         currentPage: 1,
-        limit: 10,
+        pageSize: 10,
         totalCount: 2,
         totalPages: 1,
         hasNextPage: false,
@@ -540,20 +540,20 @@ describe('UserController', () => {
 
     it('should return 200 with paginated users when validation passes', async () => {
       const req = mockRequest({
-        query: { page: '1', limit: '10' },
+        query: { page: '1', pageSize: '10' },
       });
       const res = mockResponse();
 
       mockPaginationQueryValidate.mockReturnValue({
         error: null,
-        value: { page: 1, limit: 10 },
+        value: { page: 1, pageSize: 10 },
       });
       mockGetAllUsers.mockResolvedValue(mockServiceResult);
 
       await getAllUsers(req, res);
 
       expect(mockPaginationQueryValidate).toHaveBeenCalledWith(req.query);
-      expect(mockGetAllUsers).toHaveBeenCalledWith({ page: 1, limit: 10 });
+      expect(mockGetAllUsers).toHaveBeenCalledWith({ page: 1, pageSize: 10 });
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
         success: true,
@@ -568,19 +568,19 @@ describe('UserController', () => {
 
       mockPaginationQueryValidate.mockReturnValue({
         error: null,
-        value: { page: 1, limit: 10 },
+        value: { page: 1, pageSize: 10 },
       });
       mockGetAllUsers.mockResolvedValue(mockServiceResult);
 
       await getAllUsers(req, res);
 
-      expect(mockGetAllUsers).toHaveBeenCalledWith({ page: 1, limit: 10 });
+      expect(mockGetAllUsers).toHaveBeenCalledWith({ page: 1, pageSize: 10 });
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
     it('should throw ValidationError when query validation fails', async () => {
       const req = mockRequest({
-        query: { page: '0', limit: '10' },
+        query: { page: '0', pageSize: '10' },
       });
       const res = mockResponse();
 

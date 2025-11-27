@@ -28,7 +28,7 @@ const router = express.Router();
  *           default: 1
  *         description: Page number (starts from 1)
  *       - in: query
- *         name: limit
+ *         name: pageSize
  *         schema:
  *           type: integer
  *           minimum: 1
@@ -86,7 +86,7 @@ const router = express.Router();
  *                     currentPage:
  *                       type: integer
  *                       example: 1
- *                     limit:
+ *                     pageSize:
  *                       type: integer
  *                       example: 10
  *                     totalCount:

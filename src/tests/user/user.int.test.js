@@ -283,7 +283,7 @@ describe('Users Controller (integration)', () => {
           data: expect.any(Array),
           pagination: expect.objectContaining({
             currentPage: 1,
-            limit: 10,
+            pageSize: 10,
             totalCount: expect.any(Number),
             totalPages: expect.any(Number),
             hasNextPage: expect.any(Boolean),
@@ -298,14 +298,14 @@ describe('Users Controller (integration)', () => {
       }
     });
 
-    it('should return users with custom page and limit', async () => {
-      const res = await request(app).get('/api/v1/users?page=2&limit=5');
+    it('should return users with custom page and pageSize', async () => {
+      const res = await request(app).get('/api/v1/users?page=2&pageSize=5');
 
       expect(res.status).toBe(200);
       expect(res.body.pagination).toEqual(
         expect.objectContaining({
           currentPage: 2,
-          limit: 5,
+          pageSize: 5,
         })
       );
     });
@@ -317,22 +317,22 @@ describe('Users Controller (integration)', () => {
       expect(res.body.success).toBe(false);
     });
 
-    it('should return 400 for invalid limit (too high)', async () => {
-      const res = await request(app).get('/api/v1/users?limit=101');
+    it('should return 400 for invalid pageSize (too high)', async () => {
+      const res = await request(app).get('/api/v1/users?pageSize=101');
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
     });
 
-    it('should return 400 for invalid limit (negative)', async () => {
-      const res = await request(app).get('/api/v1/users?limit=-1');
+    it('should return 400 for invalid pageSize (negative)', async () => {
+      const res = await request(app).get('/api/v1/users?pageSize=-1');
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
     });
 
     it('should return correct pagination metadata', async () => {
-      const res = await request(app).get('/api/v1/users?page=1&limit=10');
+      const res = await request(app).get('/api/v1/users?page=1&pageSize=10');
 
       expect(res.status).toBe(200);
       expect(res.body.pagination.totalCount).toBeGreaterThanOrEqual(0);

@@ -231,29 +231,29 @@ const deleteFile = (key) => {
 
 /**
  * Get all users with pagination
- * @param {Object} paginationOptions - Pagination options { page, limit }
+ * @param {Object} paginationOptions - Pagination options { page, pageSize }
  * @returns {Object} Paginated users result with metadata
  */
 const getAllUsers = async (paginationOptions = {}) => {
   try {
-    const { page = 1, limit = 10 } = paginationOptions;
+    const { page = 1, pageSize = 10 } = paginationOptions;
 
     // Calculate offset
-    const offset = (page - 1) * limit;
+    const offset = (page - 1) * pageSize;
 
     // Get total count and users in parallel
     const [totalCount, users] = await Promise.all([
       User.count(),
       User.findAll({
         attributes: { exclude: ['password'] }, // Exclude password from response
-        limit: parseInt(limit, 10),
+        limit: parseInt(pageSize, 10),
         offset: parseInt(offset, 10),
         order: [['createdAt', 'DESC']], // Order by newest first
       }),
     ]);
 
     // Calculate pagination metadata
-    const totalPages = Math.ceil(totalCount / limit);
+    const totalPages = Math.ceil(totalCount / pageSize);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
 
@@ -264,7 +264,7 @@ const getAllUsers = async (paginationOptions = {}) => {
       data: users,
       pagination: {
         currentPage: parseInt(page, 10),
-        limit: parseInt(limit, 10),
+        pageSize: parseInt(pageSize, 10),
         totalCount,
         totalPages,
         hasNextPage,
