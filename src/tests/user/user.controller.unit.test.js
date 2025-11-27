@@ -7,6 +7,7 @@ const mockUploadProfilePicture = jest.fn();
 const mockUpdateProfileData = jest.fn();
 const mockDeleteUserAccount = jest.fn();
 const mockChangeUserPassword = jest.fn();
+const mockGetAllUsers = jest.fn();
 
 const mockChangePasswordValidate = jest.fn();
 
@@ -15,6 +16,7 @@ jest.mock('../../services/userService', () => ({
   updateProfileData: mockUpdateProfileData,
   deleteUserAccount: mockDeleteUserAccount,
   changeUserPassword: mockChangeUserPassword,
+  getAllUsers: mockGetAllUsers,
 }));
 
 // -------------------------------------------------------
@@ -43,13 +45,17 @@ jest.mock('../../utils/index', () => ({
   validate: (...args) => mockValidate(...args),
 }));
 
-// utils/validator — we override only changePasswordSchema.validate
+// utils/validator — we override changePasswordSchema and paginationQuerySchema
+const mockPaginationQueryValidate = jest.fn();
 jest.mock('../../utils/validator', () => {
   const actual = jest.requireActual('../../utils/validator');
   return {
     ...actual,
     changePasswordSchema: {
       validate: (...args) => mockChangePasswordValidate(...args),
+    },
+    paginationQuerySchema: {
+      validate: (...args) => mockPaginationQueryValidate(...args),
     },
   };
 });
@@ -63,6 +69,7 @@ const {
   getProfile,
   deleteAccount,
   changePassword,
+  getAllUsers,
 } = require('../../controllers/userController');
 const { ValidationError } = require('../../utils/customErrors');
 
@@ -77,6 +84,7 @@ const mockRequest = (overrides = {}) => ({
     mimetype: 'image/jpeg',
   },
   body: {},
+  query: {},
   ...overrides,
 });
 
@@ -497,6 +505,97 @@ describe('UserController', () => {
 
       expect(mockChangePasswordValidate).toHaveBeenCalledWith({});
       expect(mockChangeUserPassword).not.toHaveBeenCalled();
+    });
+  });
+
+  // ======================================================
+  // getAllUsers TESTS
+  // ======================================================
+  describe('getAllUsers', () => {
+    const mockServiceResult = {
+      success: true,
+      data: [
+        {
+          id: 'user-1',
+          fullname: 'John Doe',
+          email: 'john@example.com',
+          role: 'USER',
+        },
+        {
+          id: 'user-2',
+          fullname: 'Jane Smith',
+          email: 'jane@example.com',
+          role: 'USER',
+        },
+      ],
+      pagination: {
+        currentPage: 1,
+        limit: 10,
+        totalCount: 2,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+      },
+    };
+
+    it('should return 200 with paginated users when validation passes', async () => {
+      const req = mockRequest({
+        query: { page: '1', limit: '10' },
+      });
+      const res = mockResponse();
+
+      mockPaginationQueryValidate.mockReturnValue({
+        error: null,
+        value: { page: 1, limit: 10 },
+      });
+      mockGetAllUsers.mockResolvedValue(mockServiceResult);
+
+      await getAllUsers(req, res);
+
+      expect(mockPaginationQueryValidate).toHaveBeenCalledWith(req.query);
+      expect(mockGetAllUsers).toHaveBeenCalledWith({ page: 1, limit: 10 });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Users retrieved successfully',
+        ...mockServiceResult,
+      });
+    });
+
+    it('should use default pagination values when query params are missing', async () => {
+      const req = mockRequest({ query: {} });
+      const res = mockResponse();
+
+      mockPaginationQueryValidate.mockReturnValue({
+        error: null,
+        value: { page: 1, limit: 10 },
+      });
+      mockGetAllUsers.mockResolvedValue(mockServiceResult);
+
+      await getAllUsers(req, res);
+
+      expect(mockGetAllUsers).toHaveBeenCalledWith({ page: 1, limit: 10 });
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it('should throw ValidationError when query validation fails', async () => {
+      const req = mockRequest({
+        query: { page: '0', limit: '10' },
+      });
+      const res = mockResponse();
+
+      mockPaginationQueryValidate.mockReturnValue({
+        error: {
+          details: [{ message: 'Page must be at least 1' }],
+        },
+        value: null,
+      });
+
+      await expect(getAllUsers(req, res)).rejects.toThrow(ValidationError);
+
+      expect(mockPaginationQueryValidate).toHaveBeenCalledWith(req.query);
+      expect(mockGetAllUsers).not.toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 });

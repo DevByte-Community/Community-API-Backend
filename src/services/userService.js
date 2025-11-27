@@ -1,7 +1,12 @@
 // services/userService.js
 const { minioClient, bucketName } = require('../utils/minioClient');
 const createLogger = require('../utils/logger');
-const { ValidationError, NotFoundError, InternalServerError } = require('../utils/customErrors');
+const {
+  ValidationError,
+  NotFoundError,
+  ConflictError,
+  InternalServerError,
+} = require('../utils/customErrors');
 const path = require('path');
 const { User } = require('../models');
 const bcrypt = require('bcrypt');
@@ -78,20 +83,17 @@ const uploadProfilePicture = async (
 
 // update user profile (fullname only for now)
 const updateProfileData = async (user, updates) => {
-  try {
-    if (!user) {
-      const error = new Error('User not found');
-      error.statusCode = 404;
-      throw error;
-    }
+  // Validate user exists - throw expected error directly
+  if (!user) {
+    throw new NotFoundError('User not found');
+  }
 
+  try {
     // Check if email already exists (avoid reusing same email)
     if (updates.email && updates.email !== user.email) {
       const existing = await User.findOne({ where: { email: updates.email } });
       if (existing) {
-        const error = new Error('Email already in use');
-        error.statusCode = 409;
-        throw error;
+        throw new ConflictError('Email already in use');
       }
     }
 
@@ -115,6 +117,16 @@ const updateProfileData = async (user, updates) => {
       },
     };
   } catch (err) {
+    // Re-throw expected errors (they should propagate)
+    if (
+      err instanceof NotFoundError ||
+      err instanceof ConflictError ||
+      err instanceof ValidationError
+    ) {
+      throw err;
+    }
+
+    // Only wrap truly unexpected errors
     logger.error(`updateProfile failed for id=${user?.id} - ${err.message}`);
     throw new InternalServerError(`Failed to update profile: ${err.message}`);
   }
@@ -217,9 +229,58 @@ const deleteFile = (key) => {
     });
 };
 
+/**
+ * Get all users with pagination
+ * @param {Object} paginationOptions - Pagination options { page, limit }
+ * @returns {Object} Paginated users result with metadata
+ */
+const getAllUsers = async (paginationOptions = {}) => {
+  try {
+    const { page = 1, limit = 10 } = paginationOptions;
+
+    // Calculate offset
+    const offset = (page - 1) * limit;
+
+    // Get total count and users in parallel
+    const [totalCount, users] = await Promise.all([
+      User.count(),
+      User.findAll({
+        attributes: { exclude: ['password'] }, // Exclude password from response
+        limit: parseInt(limit, 10),
+        offset: parseInt(offset, 10),
+        order: [['createdAt', 'DESC']], // Order by newest first
+      }),
+    ]);
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(totalCount / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    logger.info(`Retrieved ${users.length} users (page ${page} of ${totalPages})`);
+
+    return {
+      success: true,
+      data: users,
+      pagination: {
+        currentPage: parseInt(page, 10),
+        limit: parseInt(limit, 10),
+        totalCount,
+        totalPages,
+        hasNextPage,
+        hasPrevPage,
+      },
+    };
+  } catch (error) {
+    logger.error(`Error fetching users: ${error.message}`);
+    throw new InternalServerError('Failed to fetch users');
+  }
+};
+
 module.exports = {
   uploadProfilePicture,
   updateProfileData,
   deleteUserAccount,
   changeUserPassword,
+  getAllUsers,
 };

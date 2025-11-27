@@ -5,11 +5,123 @@ const {
   getProfile,
   deleteAccount,
   changePassword,
+  getAllUsers,
 } = require('../controllers/userController');
 const { authenticateJWT } = require('../middleware/authMiddleware');
 const { handleMulterUpload } = require('../middleware/uploadMiddleware');
 
 const router = express.Router();
+
+/**
+ * @swagger
+ * /api/v1/users:
+ *   get:
+ *     summary: Get all users with pagination
+ *     description: Retrieve a paginated list of all users in the system. Requires admin authentication.
+ *     tags: [User]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number (starts from 1)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Number of users per page (max 100)
+ *     responses:
+ *       200:
+ *         description: Users retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Users retrieved successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                         example: 123e4567-e89b-12d3-a456-426614174000
+ *                       fullname:
+ *                         type: string
+ *                         example: John Doe
+ *                       email:
+ *                         type: string
+ *                         example: john.doe@example.com
+ *                       role:
+ *                         type: string
+ *                         enum: [USER, ADMIN, ROOT]
+ *                         example: USER
+ *                       profilePicture:
+ *                         type: string
+ *                         nullable: true
+ *                         example: devbyte-profile-pictures/profile_picture_123e4567_1234567890.jpg
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2025-01-15T10:30:00.000Z
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2025-01-20T14:45:00.000Z
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                       example: 1
+ *                     limit:
+ *                       type: integer
+ *                       example: 10
+ *                     totalCount:
+ *                       type: integer
+ *                       example: 50
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 5
+ *                     hasNextPage:
+ *                       type: boolean
+ *                       example: true
+ *                     hasPrevPage:
+ *                       type: boolean
+ *                       example: false
+ *       400:
+ *         description: Bad request - Invalid pagination parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Page must be at least 1
+ *       401:
+ *         description: Unauthorized - Missing or invalid JWT token
+ *       403:
+ *         description: Forbidden - Insufficient permissions (Admin required)
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/', getAllUsers);
 
 /**
  * @swagger
