@@ -253,4 +253,105 @@ describe('Users Controller (integration)', () => {
       expect([401, 403]).toContain(res.status);
     });
   });
+
+  describe('GET /api/v1/users', () => {
+    beforeEach(async () => {
+      // Create multiple test users for pagination testing via API
+      const users = [];
+      for (let i = 1; i <= 15; i++) {
+        users.push({
+          fullname: `User ${i}`,
+          email: `user${i}@example.com`,
+          password: 'Password123!',
+        });
+      }
+
+      // Create users via signup to ensure proper setup
+      for (const userData of users) {
+        await request(app).post('/api/v1/auth/signup').send(userData);
+      }
+    });
+
+    it('should return paginated users with default pagination', async () => {
+      const res = await request(app).get('/api/v1/users');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(
+        expect.objectContaining({
+          success: true,
+          message: 'Users retrieved successfully',
+          data: expect.any(Array),
+          pagination: expect.objectContaining({
+            currentPage: 1,
+            pageSize: 10,
+            totalCount: expect.any(Number),
+            totalPages: expect.any(Number),
+            hasNextPage: expect.any(Boolean),
+            hasPrevPage: expect.any(Boolean),
+          }),
+        })
+      );
+
+      // Should not include password in response
+      if (res.body.data.length > 0) {
+        expect(res.body.data[0]).not.toHaveProperty('password');
+      }
+    });
+
+    it('should return users with custom page and pageSize', async () => {
+      const res = await request(app).get('/api/v1/users?page=2&pageSize=5');
+
+      expect(res.status).toBe(200);
+      expect(res.body.pagination).toEqual(
+        expect.objectContaining({
+          currentPage: 2,
+          pageSize: 5,
+        })
+      );
+    });
+
+    it('should return 400 for invalid page number', async () => {
+      const res = await request(app).get('/api/v1/users?page=0');
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('should return 400 for invalid pageSize (too high)', async () => {
+      const res = await request(app).get('/api/v1/users?pageSize=101');
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('should return 400 for invalid pageSize (negative)', async () => {
+      const res = await request(app).get('/api/v1/users?pageSize=-1');
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('should return correct pagination metadata', async () => {
+      const res = await request(app).get('/api/v1/users?page=1&pageSize=10');
+
+      expect(res.status).toBe(200);
+      expect(res.body.pagination.totalCount).toBeGreaterThanOrEqual(0);
+      expect(res.body.pagination.totalPages).toBeGreaterThanOrEqual(0);
+      expect(typeof res.body.pagination.hasNextPage).toBe('boolean');
+      expect(typeof res.body.pagination.hasPrevPage).toBe('boolean');
+    });
+
+    it('should return empty array when no users exist', async () => {
+      // Clean up all users
+      const db = testManager.getModels();
+      await db.User.destroy({ where: {}, force: true });
+
+      const res = await request(app).get('/api/v1/users');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual([]);
+      expect(res.body.pagination.totalCount).toBe(0);
+      expect(res.body.pagination.totalPages).toBe(0);
+    });
+  });
 });

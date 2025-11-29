@@ -3,11 +3,16 @@ const {
   updateProfileData,
   deleteUserAccount,
   changeUserPassword,
+  getAllUsers,
 } = require('../services/userService');
 const createLogger = require('../utils/logger');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { ValidationError } = require('../utils/customErrors');
-const { updateProfileSchema, changePasswordSchema } = require('../utils/validator');
+const {
+  updateProfileSchema,
+  changePasswordSchema,
+  paginationQuerySchema,
+} = require('../utils/validator');
 const Validator = require('../utils/index');
 const { clearAuthCookies } = require('../utils/cookies');
 
@@ -128,10 +133,36 @@ const changePassword = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Get all users with pagination
+ * @route GET /api/v1/users
+ */
+const getAllUsersController = asyncHandler(async (req, res) => {
+  // Validate query parameters
+  const { error, value } = paginationQuerySchema.validate(req.query);
+  if (error) {
+    throw new ValidationError(error.details[0].message);
+  }
+
+  const { page, pageSize } = value;
+
+  // Get paginated users
+  const result = await getAllUsers({ page, pageSize });
+
+  logger.info(`Retrieved users list - page ${page}, pageSize ${pageSize}`);
+
+  return res.status(200).json({
+    success: true,
+    message: 'Users retrieved successfully',
+    ...result,
+  });
+});
+
 module.exports = {
   updateProfilePicture,
   updateProfile,
   getProfile,
   deleteAccount,
   changePassword,
+  getAllUsers: getAllUsersController,
 };
