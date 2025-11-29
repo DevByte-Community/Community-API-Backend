@@ -8,6 +8,7 @@ const {
   updateProfileData,
   deleteUserAccount,
   changeUserPassword,
+  getAllUsers,
 } = require('../../services/userService');
 const { minioClient } = require('../../utils/minioClient');
 const { User } = require('../../models');
@@ -22,10 +23,15 @@ jest.mock('../../utils/minioClient', () => ({
   bucketName: 'test-bucket',
 }));
 
+const mockCount = jest.fn();
+const mockFindAll = jest.fn();
+
 jest.mock('../../models', () => ({
   User: {
     findOne: jest.fn(),
     findByPk: jest.fn(),
+    count: (...args) => mockCount(...args),
+    findAll: (...args) => mockFindAll(...args),
   },
 }));
 
@@ -275,6 +281,105 @@ describe('USER_SERVICE', () => {
       expect(mockCompare).toHaveBeenCalledWith('OldPassword123!', user.password);
       expect(mockHash).toHaveBeenCalledWith('NewPassword456!', expect.any(Number));
       expect(user.update).toHaveBeenCalled();
+    });
+  });
+
+  // ----------------------------
+  // getAllUsers Tests
+  // ----------------------------
+  describe('getAllUsers', () => {
+    const mockUsers = [
+      {
+        id: 'user-1',
+        fullname: 'John Doe',
+        email: 'john@example.com',
+        role: 'USER',
+        createdAt: new Date('2025-01-15'),
+        updatedAt: new Date('2025-01-20'),
+      },
+      {
+        id: 'user-2',
+        fullname: 'Jane Smith',
+        email: 'jane@example.com',
+        role: 'USER',
+        createdAt: new Date('2025-01-16'),
+        updatedAt: new Date('2025-01-21'),
+      },
+    ];
+
+    beforeEach(() => {
+      mockCount.mockClear();
+      mockFindAll.mockClear();
+    });
+
+    it('✅ should return paginated users with default pagination', async () => {
+      mockCount.mockResolvedValueOnce(2);
+      mockFindAll.mockResolvedValueOnce(mockUsers);
+
+      const result = await getAllUsers();
+
+      expect(mockCount).toHaveBeenCalled();
+      expect(mockFindAll).toHaveBeenCalledWith({
+        attributes: { exclude: ['password'] },
+        limit: 10,
+        offset: 0,
+        order: [['createdAt', 'DESC']],
+      });
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockUsers);
+      expect(result.pagination).toEqual({
+        currentPage: 1,
+        pageSize: 10,
+        totalCount: 2,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+      });
+    });
+
+    it('✅ should return paginated users with custom page and pageSize', async () => {
+      mockCount.mockResolvedValueOnce(25);
+      mockFindAll.mockResolvedValueOnce(mockUsers);
+
+      const result = await getAllUsers({ page: 2, pageSize: 10 });
+
+      expect(mockFindAll).toHaveBeenCalledWith({
+        attributes: { exclude: ['password'] },
+        limit: 10,
+        offset: 10,
+        order: [['createdAt', 'DESC']],
+      });
+      expect(result.pagination).toEqual({
+        currentPage: 2,
+        pageSize: 10,
+        totalCount: 25,
+        totalPages: 3,
+        hasNextPage: true,
+        hasPrevPage: true,
+      });
+    });
+
+    it('✅ should calculate hasNextPage and hasPrevPage correctly', async () => {
+      mockCount.mockResolvedValueOnce(50);
+      mockFindAll.mockResolvedValueOnce(mockUsers);
+
+      // First page
+      const result1 = await getAllUsers({ page: 1, pageSize: 10 });
+      expect(result1.pagination.hasNextPage).toBe(true);
+      expect(result1.pagination.hasPrevPage).toBe(false);
+
+      // Last page
+      mockCount.mockResolvedValueOnce(50);
+      mockFindAll.mockResolvedValueOnce(mockUsers);
+      const result2 = await getAllUsers({ page: 5, pageSize: 10 });
+      expect(result2.pagination.hasNextPage).toBe(false);
+      expect(result2.pagination.hasPrevPage).toBe(true);
+    });
+
+    it('⚠️ should throw InternalServerError on database error', async () => {
+      mockCount.mockRejectedValueOnce(new Error('Database connection failed'));
+
+      await expect(getAllUsers()).rejects.toThrow(InternalServerError);
     });
   });
 });

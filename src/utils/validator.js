@@ -130,6 +130,21 @@ const preferencesUpdateSchema = Joi.object({
     'object.min': 'At least one preference field must be provided',
   });
 
+// Pagination query parameters schema
+const paginationQuerySchema = Joi.object({
+  page: Joi.number().integer().min(1).default(1).messages({
+    'number.base': 'Page must be a number',
+    'number.integer': 'Page must be an integer',
+    'number.min': 'Page must be at least 1',
+  }),
+  pageSize: Joi.number().integer().min(1).max(100).default(10).messages({
+    'number.base': 'pageSize must be a number',
+    'number.integer': 'pageSize must be an integer',
+    'number.min': 'pageSize must be at least 1',
+    'number.max': 'pageSize must not exceed 100',
+  }),
+});
+
 module.exports = {
   signupSchema,
   signinSchema,
@@ -140,4 +155,5 @@ module.exports = {
   assignRoleSchema,
   changePasswordSchema,
   preferencesUpdateSchema,
+  paginationQuerySchema,
 };
