@@ -51,8 +51,9 @@ jest.mock('../../utils/index', () => ({
   validate: (...args) => mockValidate(...args),
 }));
 
-// utils/validator — we override changePasswordSchema and paginationQuerySchema
+// utils/validator — we override changePasswordSchema, paginationQuerySchema, and addSkillToUserSchema
 const mockPaginationQueryValidate = jest.fn();
+const mockAddSkillToUserValidate = jest.fn();
 jest.mock('../../utils/validator', () => {
   const actual = jest.requireActual('../../utils/validator');
   return {
@@ -62,6 +63,9 @@ jest.mock('../../utils/validator', () => {
     },
     paginationQuerySchema: {
       validate: (...args) => mockPaginationQueryValidate(...args),
+    },
+    addSkillToUserSchema: {
+      validate: (...args) => mockAddSkillToUserValidate(...args),
     },
   };
 });
@@ -76,11 +80,11 @@ const {
   deleteAccount,
   changePassword,
   getAllUsers,
-  _addSkillToUser,
-  _removeSkillFromUser,
-  _getUserSkills,
+  addSkillToUser,
+  removeSkillFromUser,
+  getUserSkills,
 } = require('../../controllers/userController');
-const { ValidationError } = require('../../utils/customErrors');
+const { ValidationError, NotFoundError, ConflictError } = require('../../utils/customErrors');
 
 // -------------------------------------------------------
 // STEP 6: Helpers
@@ -292,6 +296,183 @@ describe('UserController', () => {
           message: expect.any(String),
         })
       );
+    });
+  });
+
+  // ======================================================
+  // addSkillToUser TESTS
+  // ======================================================
+  describe('addSkillToUser', () => {
+    it('returns 200 when skill is added successfully', async () => {
+      const skillId = '123e4567-e89b-12d3-a456-426614174000';
+      const req = mockRequest({
+        body: { skillId },
+        user: { id: 'user-123' },
+      });
+      const res = mockResponse();
+
+      mockAddSkillToUserValidate.mockReturnValue({
+        error: null,
+        value: { skillId },
+      });
+
+      const mockSkill = {
+        id: skillId,
+        name: 'JavaScript',
+        description: 'Programming language',
+      };
+
+      mockAddSkillToUser.mockResolvedValue(mockSkill);
+
+      await addSkillToUser(req, res);
+
+      expect(mockAddSkillToUserValidate).toHaveBeenCalledWith(req.body);
+      expect(mockAddSkillToUser).toHaveBeenCalledWith(req.user, skillId);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Skill added to your profile successfully',
+        skill: mockSkill,
+      });
+    });
+
+    it('throws ValidationError when skillId is invalid', async () => {
+      const req = mockRequest({
+        body: { skillId: 'invalid-uuid' },
+        user: { id: 'user-123' },
+      });
+      const res = mockResponse();
+
+      mockAddSkillToUserValidate.mockReturnValue({
+        error: {
+          details: [{ message: 'Skill ID must be a valid UUID' }],
+        },
+        value: null,
+      });
+
+      // The validator will throw ValidationError
+      await expect(addSkillToUser(req, res)).rejects.toThrow(ValidationError);
+      expect(mockAddSkillToUser).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundError when skill does not exist', async () => {
+      const req = mockRequest({
+        body: { skillId: '00000000-0000-0000-0000-000000000000' },
+        user: { id: 'user-123' },
+      });
+      const res = mockResponse();
+
+      mockAddSkillToUserValidate.mockReturnValue({
+        error: null,
+        value: { skillId: '00000000-0000-0000-0000-000000000000' },
+      });
+
+      mockAddSkillToUser.mockRejectedValue(new NotFoundError('Skill not found'));
+
+      await expect(addSkillToUser(req, res)).rejects.toThrow(NotFoundError);
+    });
+
+    it('throws ConflictError when user already has the skill', async () => {
+      const req = mockRequest({
+        body: { skillId: '123e4567-e89b-12d3-a456-426614174000' },
+        user: { id: 'user-123' },
+      });
+      const res = mockResponse();
+
+      mockAddSkillToUserValidate.mockReturnValue({
+        error: null,
+        value: { skillId: '123e4567-e89b-12d3-a456-426614174000' },
+      });
+
+      mockAddSkillToUser.mockRejectedValue(new ConflictError('User already has this skill'));
+
+      await expect(addSkillToUser(req, res)).rejects.toThrow(ConflictError);
+    });
+  });
+
+  // ======================================================
+  // removeSkillFromUser TESTS
+  // ======================================================
+  describe('removeSkillFromUser', () => {
+    it('returns 200 when skill is removed successfully', async () => {
+      const skillId = '123e4567-e89b-12d3-a456-426614174000';
+      const req = mockRequest({
+        params: { skillId },
+        user: { id: 'user-123' },
+      });
+      const res = mockResponse();
+
+      mockRemoveSkillFromUser.mockResolvedValue(true);
+
+      await removeSkillFromUser(req, res);
+
+      expect(mockRemoveSkillFromUser).toHaveBeenCalledWith(req.user, skillId);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Skill removed from your profile successfully',
+      });
+    });
+
+    it('throws NotFoundError when user does not have the skill', async () => {
+      const skillId = '123e4567-e89b-12d3-a456-426614174000';
+      const req = mockRequest({
+        params: { skillId },
+        user: { id: 'user-123' },
+      });
+      const res = mockResponse();
+
+      mockRemoveSkillFromUser.mockRejectedValue(new NotFoundError('User does not have this skill'));
+
+      await expect(removeSkillFromUser(req, res)).rejects.toThrow(NotFoundError);
+    });
+  });
+
+  // ======================================================
+  // getUserSkills TESTS
+  // ======================================================
+  describe('getUserSkills', () => {
+    it('returns 200 with user skills array', async () => {
+      const req = mockRequest({
+        user: { id: 'user-123' },
+      });
+      const res = mockResponse();
+
+      const mockSkills = [
+        { id: 'skill-1', name: 'JavaScript' },
+        { id: 'skill-2', name: 'Python' },
+      ];
+
+      mockGetUserSkills.mockResolvedValue(mockSkills);
+
+      await getUserSkills(req, res);
+
+      expect(mockGetUserSkills).toHaveBeenCalledWith(req.user);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'User skills retrieved successfully',
+        skills: mockSkills,
+        count: 2,
+      });
+    });
+
+    it('returns 200 with empty array when user has no skills', async () => {
+      const req = mockRequest({
+        user: { id: 'user-123' },
+      });
+      const res = mockResponse();
+
+      mockGetUserSkills.mockResolvedValue([]);
+
+      await getUserSkills(req, res);
+
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'User skills retrieved successfully',
+        skills: [],
+        count: 0,
+      });
     });
   });
 

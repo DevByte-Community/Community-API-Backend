@@ -108,7 +108,7 @@ const batchCreateSkillsController = asyncHandler(async (req, res) => {
     `Batch created ${result.summary.created} skills, skipped ${result.summary.skipped}, errors: ${result.summary.errors} by user: ${createdBy}`
   );
 
-  const statusCode = result.summary.errors.length > 0 ? 207 : 201; // 207 Multi-Status if partial success
+  const statusCode = result.summary.errors > 0 ? 207 : 201; // 207 Multi-Status if partial success
 
   return res.status(statusCode).json({
     success: true,

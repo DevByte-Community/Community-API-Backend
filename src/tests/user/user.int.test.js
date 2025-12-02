@@ -354,4 +354,177 @@ describe('Users Controller (integration)', () => {
       expect(res.body.pagination.totalPages).toBe(0);
     });
   });
+
+  describe('GET /api/v1/users/me/skills', () => {
+    it('returns 200 with user skills array', async () => {
+      // Ensure agent is authenticated
+      const profileRes = await agent.get('/api/v1/users/profile');
+      if (profileRes.status === 401) {
+        // Re-signup if needed
+        await agent.post('/api/v1/auth/signup').send(TEST_USER);
+      }
+
+      const res = await agent.get('/api/v1/users/me/skills');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(
+        expect.objectContaining({
+          success: true,
+          message: 'User skills retrieved successfully',
+          skills: expect.any(Array),
+          count: expect.any(Number),
+        })
+      );
+    });
+
+    it('returns 401 when not authenticated', async () => {
+      const res = await request(app).get('/api/v1/users/me/skills');
+      expect([401, 403]).toContain(res.status);
+    });
+  });
+
+  describe('POST /api/v1/users/me/skills', () => {
+    let skillId;
+
+    beforeAll(async () => {
+      // Ensure agent is authenticated
+      const profileRes = await agent.get('/api/v1/users/profile');
+      if (profileRes.status === 401) {
+        await agent.post('/api/v1/auth/signup').send(TEST_USER);
+      }
+
+      // Create a skill first (need admin for this)
+      // For testing, we'll create a skill directly in the database
+      const { Skill } = testManager.getModels();
+      const skill = await Skill.create({
+        name: 'Test Skill for User',
+        description: 'Test description',
+      });
+      skillId = skill.id;
+    });
+
+    it('returns 200 when skill is added successfully', async () => {
+      if (!skillId) return;
+
+      // Ensure agent is authenticated
+      const profileRes = await agent.get('/api/v1/users/profile');
+      if (profileRes.status === 401) {
+        await agent.post('/api/v1/auth/signup').send(TEST_USER);
+      }
+
+      const res = await agent.post('/api/v1/users/me/skills').send({
+        skillId: skillId,
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(
+        expect.objectContaining({
+          success: true,
+          message: 'Skill added to your profile successfully',
+          skill: expect.objectContaining({
+            id: skillId,
+            name: 'Test Skill for User',
+          }),
+        })
+      );
+    });
+
+    it('returns 400 when skillId is invalid', async () => {
+      const res = await agent.post('/api/v1/users/me/skills').send({
+        skillId: 'invalid-uuid',
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 404 when skill does not exist', async () => {
+      const fakeId = '00000000-0000-0000-0000-000000000000';
+      const res = await agent.post('/api/v1/users/me/skills').send({
+        skillId: fakeId,
+      });
+
+      expect(res.status).toBe(404);
+    });
+
+    it('returns 409 when user already has the skill', async () => {
+      if (!skillId) return;
+
+      // Try to add the same skill again
+      const res = await agent.post('/api/v1/users/me/skills').send({
+        skillId: skillId,
+      });
+
+      expect(res.status).toBe(409);
+    });
+
+    it('returns 401 when not authenticated', async () => {
+      const res = await request(app).post('/api/v1/users/me/skills').send({
+        skillId: 'some-skill-id',
+      });
+
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe('DELETE /api/v1/users/me/skills/:skillId', () => {
+    let skillId;
+
+    beforeAll(async () => {
+      // Create a skill and add it to user
+      const { Skill, UserSkills } = testManager.getModels();
+      const { User } = testManager.getModels();
+
+      const user = await User.findOne({ where: { email: TEST_USER.email } });
+      const skill = await Skill.create({
+        name: 'Skill To Remove',
+        description: 'Will be removed',
+      });
+
+      await UserSkills.create({
+        userId: user.id,
+        skillId: skill.id,
+      });
+
+      skillId = skill.id;
+    });
+
+    it('returns 200 when skill is removed successfully', async () => {
+      if (!skillId) return;
+
+      // Ensure agent is authenticated
+      const profileRes = await agent.get('/api/v1/users/profile');
+      if (profileRes.status === 401) {
+        await agent.post('/api/v1/auth/signup').send(TEST_USER);
+      }
+
+      const res = await agent.delete(`/api/v1/users/me/skills/${skillId}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(
+        expect.objectContaining({
+          success: true,
+          message: 'Skill removed from your profile successfully',
+        })
+      );
+
+      // Verify skill is removed
+      const getRes = await agent.get('/api/v1/users/me/skills');
+      if (getRes.status === 200) {
+        const skillIds = getRes.body.skills.map((s) => s.id);
+        expect(skillIds).not.toContain(skillId);
+      }
+    });
+
+    it('returns 404 when user does not have the skill', async () => {
+      const fakeId = '00000000-0000-0000-0000-000000000000';
+      const res = await agent.delete(`/api/v1/users/me/skills/${fakeId}`);
+
+      expect(res.status).toBe(404);
+    });
+
+    it('returns 401 when not authenticated', async () => {
+      const res = await request(app).delete('/api/v1/users/me/skills/some-skill-id');
+
+      expect(res.status).toBe(401);
+    });
+  });
 });
