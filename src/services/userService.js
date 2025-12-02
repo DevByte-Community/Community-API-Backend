@@ -277,10 +277,128 @@ const getAllUsers = async (paginationOptions = {}) => {
   }
 };
 
+/**
+ * Add a skill to the authenticated user's skills list
+ * @param {Object} user - User object
+ * @param {string} skillId - Skill UUID
+ * @returns {Object} Added skill object
+ */
+const addSkillToUser = async (user, skillId) => {
+  try {
+    const { Skill, UserSkills } = require('../models');
+
+    // Check if skill exists
+    const skill = await Skill.findByPk(skillId);
+    if (!skill) {
+      throw new NotFoundError('Skill not found');
+    }
+
+    // Check if user already has this skill
+    const existingUserSkill = await UserSkills.findOne({
+      where: {
+        userId: user.id,
+        skillId: skillId,
+      },
+    });
+
+    if (existingUserSkill) {
+      throw new ConflictError('User already has this skill');
+    }
+
+    // Add skill to user
+    await UserSkills.create({
+      userId: user.id,
+      skillId: skillId,
+    });
+
+    logger.info(`Added skill ${skillId} to user ${user.id}`);
+
+    return skill;
+  } catch (error) {
+    if (
+      error instanceof NotFoundError ||
+      error instanceof ConflictError ||
+      error instanceof ValidationError
+    ) {
+      throw error;
+    }
+
+    logger.error(`Error adding skill to user: ${error.message}`);
+    throw new InternalServerError('Failed to add skill to user');
+  }
+};
+
+/**
+ * Remove a skill from the authenticated user's skills list
+ * @param {Object} user - User object
+ * @param {string} skillId - Skill UUID
+ * @returns {boolean} True if removed successfully
+ */
+const removeSkillFromUser = async (user, skillId) => {
+  try {
+    const { UserSkills } = require('../models');
+
+    // Check if user has this skill
+    const userSkill = await UserSkills.findOne({
+      where: {
+        userId: user.id,
+        skillId: skillId,
+      },
+    });
+
+    if (!userSkill) {
+      throw new NotFoundError('User does not have this skill');
+    }
+
+    // Remove skill from user
+    await userSkill.destroy();
+
+    logger.info(`Removed skill ${skillId} from user ${user.id}`);
+    return true;
+  } catch (error) {
+    if (error instanceof NotFoundError || error instanceof ValidationError) {
+      throw error;
+    }
+
+    logger.error(`Error removing skill from user: ${error.message}`);
+    throw new InternalServerError('Failed to remove skill from user');
+  }
+};
+
+/**
+ * Get all skills for the authenticated user
+ * @param {Object} user - User object
+ * @returns {Array} Array of user's skills
+ */
+const getUserSkills = async (user) => {
+  try {
+    const { User, Skill } = require('../models');
+
+    // Reload user with skills association
+    const userWithSkills = await User.findByPk(user.id, {
+      include: [
+        {
+          model: Skill,
+          as: 'skills',
+          through: { attributes: [] }, // Exclude join table attributes
+        },
+      ],
+    });
+
+    return userWithSkills?.skills || [];
+  } catch (error) {
+    logger.error(`Error fetching user skills: ${error.message}`);
+    throw new InternalServerError('Failed to fetch user skills');
+  }
+};
+
 module.exports = {
   uploadProfilePicture,
   updateProfileData,
   deleteUserAccount,
   changeUserPassword,
   getAllUsers,
+  addSkillToUser,
+  removeSkillFromUser,
+  getUserSkills,
 };

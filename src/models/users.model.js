@@ -5,12 +5,26 @@ const { uuidv7 } = require('uuidv7');
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
     static associate(models) {
-      // define associations here if needed later
-      // e.g., User.belongsToMany(models.Skill, { through: 'UserSkills', foreignKey: 'userId' });
+      // User preferences
       User.hasOne(models.Preference, {
         foreignKey: 'userId',
         as: 'preferences',
         onDelete: 'CASCADE',
+      });
+
+      // Skills created by this user
+      User.hasMany(models.Skill, {
+        foreignKey: 'createdBy',
+        as: 'createdSkills',
+        onDelete: 'SET NULL',
+      });
+
+      // Many-to-many: Skills possessed by this user
+      User.belongsToMany(models.Skill, {
+        through: 'UserSkills',
+        foreignKey: 'userId',
+        otherKey: 'skillId',
+        as: 'skills',
       });
     }
 

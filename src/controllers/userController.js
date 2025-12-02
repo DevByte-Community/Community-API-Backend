@@ -4,6 +4,9 @@ const {
   deleteUserAccount,
   changeUserPassword,
   getAllUsers,
+  addSkillToUser,
+  removeSkillFromUser,
+  getUserSkills,
 } = require('../services/userService');
 const createLogger = require('../utils/logger');
 const { asyncHandler } = require('../middleware/errorHandler');
@@ -12,6 +15,7 @@ const {
   updateProfileSchema,
   changePasswordSchema,
   paginationQuerySchema,
+  addSkillToUserSchema,
 } = require('../utils/validator');
 const Validator = require('../utils/index');
 const { clearAuthCookies } = require('../utils/cookies');
@@ -66,7 +70,10 @@ const updateProfile = asyncHandler(async (req, res) => {
 
 const getProfile = asyncHandler(async (req, res) => {
   try {
+    // Get user with skills
+    const skills = await getUserSkills(req.user);
     const { password, ...user } = req.user.dataValues;
+
     logger.info(
       `Get Profile successful for userId=${req.user.dataValues.id}, ${password.slice(0, 1)}`
     );
@@ -74,7 +81,7 @@ const getProfile = asyncHandler(async (req, res) => {
     return res.status(200).json({
       success: true,
       message: 'Get Profile successfully',
-      user: { ...user, skills: [] },
+      user: { ...user, skills },
     });
   } catch (err) {
     logger.error(`get user profile failed for userId=${req.user?.id} - ${err.message}`);
@@ -158,6 +165,67 @@ const getAllUsersController = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Add a skill to authenticated user's skills list
+ * @route POST /api/v1/users/me/skills
+ * @access Private
+ */
+const addSkillToUserController = asyncHandler(async (req, res) => {
+  // Validate request body
+  const { error, value } = addSkillToUserSchema.validate(req.body);
+  if (error) {
+    throw new ValidationError(error.details[0].message);
+  }
+
+  const { skillId } = value;
+
+  const skill = await addSkillToUser(req.user, skillId);
+
+  logger.info(`Skill ${skillId} added to user ${req.user.id}`);
+
+  return res.status(200).json({
+    success: true,
+    message: 'Skill added to your profile successfully',
+    skill,
+  });
+});
+
+/**
+ * Remove a skill from authenticated user's skills list
+ * @route DELETE /api/v1/users/me/skills/:skillId
+ * @access Private
+ */
+const removeSkillFromUserController = asyncHandler(async (req, res) => {
+  const { skillId } = req.params;
+
+  await removeSkillFromUser(req.user, skillId);
+
+  logger.info(`Skill ${skillId} removed from user ${req.user.id}`);
+
+  return res.status(200).json({
+    success: true,
+    message: 'Skill removed from your profile successfully',
+  });
+});
+
+/**
+ * Get all skills for authenticated user
+ * @route GET /api/v1/users/me/skills
+ * @access Private
+ */
+const getUserSkillsController = asyncHandler(async (req, res) => {
+  const skills = await getUserSkills(req.user);
+
+  logger.info(`Retrieved ${skills.length} skills for user ${req.user.id}`);
+
+  return res.status(200).json({
+    success: true,
+    message: 'User skills retrieved successfully',
+    skills,
+    count: skills.length,
+  });
+});
+
 module.exports = {
   updateProfilePicture,
   updateProfile,
@@ -165,4 +233,7 @@ module.exports = {
   deleteAccount,
   changePassword,
   getAllUsers: getAllUsersController,
+  addSkillToUser: addSkillToUserController,
+  removeSkillFromUser: removeSkillFromUserController,
+  getUserSkills: getUserSkillsController,
 };
