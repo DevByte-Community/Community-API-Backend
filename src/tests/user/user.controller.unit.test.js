@@ -8,6 +8,9 @@ const mockUpdateProfileData = jest.fn();
 const mockDeleteUserAccount = jest.fn();
 const mockChangeUserPassword = jest.fn();
 const mockGetAllUsers = jest.fn();
+const mockGetUserSkills = jest.fn();
+const mockAddSkillToUser = jest.fn();
+const mockRemoveSkillFromUser = jest.fn();
 
 const mockChangePasswordValidate = jest.fn();
 
@@ -17,6 +20,9 @@ jest.mock('../../services/userService', () => ({
   deleteUserAccount: mockDeleteUserAccount,
   changeUserPassword: mockChangeUserPassword,
   getAllUsers: mockGetAllUsers,
+  getUserSkills: mockGetUserSkills,
+  addSkillToUser: mockAddSkillToUser,
+  removeSkillFromUser: mockRemoveSkillFromUser,
 }));
 
 // -------------------------------------------------------
@@ -70,6 +76,9 @@ const {
   deleteAccount,
   changePassword,
   getAllUsers,
+  _addSkillToUser,
+  _removeSkillFromUser,
+  _getUserSkills,
 } = require('../../controllers/userController');
 const { ValidationError } = require('../../utils/customErrors');
 
@@ -249,8 +258,12 @@ describe('UserController', () => {
       });
       const res = mockResponse();
 
+      // Mock getUserSkills to return empty array
+      mockGetUserSkills.mockResolvedValue([]);
+
       await getProfile(req, res);
 
+      expect(mockGetUserSkills).toHaveBeenCalledWith(req.user);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
         success: true,

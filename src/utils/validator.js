@@ -181,6 +181,32 @@ const addSkillToUserSchema = Joi.object({
   }),
 });
 
+// Batch create skills schema
+const batchCreateSkillsSchema = Joi.object({
+  skills: Joi.array()
+    .items(
+      Joi.object({
+        name: Joi.string().min(2).max(100).required().messages({
+          'string.empty': 'Skill name is required',
+          'string.min': 'Skill name must be at least 2 characters long',
+          'string.max': 'Skill name must not exceed 100 characters',
+          'any.required': 'Skill name is required',
+        }),
+        description: Joi.string().max(500).allow('', null).optional().messages({
+          'string.max': 'Description must not exceed 500 characters',
+        }),
+      })
+    )
+    .min(1)
+    .max(50)
+    .required()
+    .messages({
+      'array.min': 'At least one skill must be provided',
+      'array.max': 'Maximum 50 skills can be created at once',
+      'any.required': 'Skills array is required',
+    }),
+});
+
 module.exports = {
   signupSchema,
   signinSchema,
@@ -195,4 +221,5 @@ module.exports = {
   createSkillSchema,
   updateSkillSchema,
   addSkillToUserSchema,
+  batchCreateSkillsSchema,
 };

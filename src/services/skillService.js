@@ -6,7 +6,7 @@ const {
   ConflictError,
   InternalServerError,
 } = require('../utils/customErrors');
-const { Skill } = require('../models');
+const { Skill, sequelize } = require('../models');
 const {
   getCachedSkill,
   cacheSkill,
@@ -124,6 +124,7 @@ const getSkillById = async (skillId) => {
 /**
  * Create a new skill (with cache invalidation)
  * @param {Object} skillData - Skill data { name, description }
+ * @param {string} createdBy - Id of the user creating the skill which is nullable
  * @returns {Object} Created skill object
  */
 const createSkill = async (skillData, createdBy = null) => {
@@ -193,6 +194,7 @@ const updateSkill = async (skillId, updates) => {
     if (!skill) {
       throw new NotFoundError('Skill not found');
     }
+    logger.info(`Updating skill: ${skillId} - ${JSON.stringify(skill)}`);
 
     const oldName = skill.name;
     const newName = updates.name ? updates.name.trim() : null;
@@ -257,6 +259,95 @@ const updateSkill = async (skillId, updates) => {
 };
 
 /**
+ * Batch create multiple skills
+ * @param {Array} skillsData - Array of skill data objects [{ name, description }, ...]
+ * @param {string} createdBy - UUID of the user creating the skills
+ * @returns {Object} Object with created skills, skipped duplicates, and errors
+ */
+const batchCreateSkills = async (skillsData, createdBy = null) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const created = [];
+    const skipped = [];
+    const errors = [];
+
+    for (let i = 0; i < skillsData.length; i++) {
+      const skillData = skillsData[i];
+      try {
+        const { name, description } = skillData;
+        const normalizedName = name.trim();
+
+        // Check if skill already exists
+        const existingSkill = await Skill.findOne({
+          where: { name: normalizedName },
+          transaction,
+        });
+
+        if (existingSkill) {
+          skipped.push({
+            index: i,
+            name: normalizedName,
+            reason: 'Skill with this name already exists',
+          });
+          continue;
+        }
+
+        // Create the skill
+        const skill = await Skill.create(
+          {
+            name: normalizedName,
+            description: description?.trim() || null,
+            createdBy: createdBy,
+          },
+          { transaction }
+        );
+
+        // Cache the new skill
+        await cacheSkill(skill.id, skill);
+        await cacheSkillNameLookup(normalizedName, skill.id);
+
+        created.push(skill);
+      } catch (error) {
+        errors.push({
+          index: i,
+          name: skillData.name,
+          error: error.message,
+        });
+      }
+    }
+
+    // If any skills were created, invalidate caches
+    if (created.length > 0) {
+      await invalidateAllSkillCaches();
+    }
+
+    await transaction.commit();
+
+    logger.info(
+      `Batch created ${created.length} skills, skipped ${skipped.length}, errors: ${errors.length} by user: ${createdBy}`
+    );
+
+    return {
+      success: true,
+      created,
+      skipped,
+      errors,
+      summary: {
+        total: skillsData.length,
+        created: created.length,
+        skipped: skipped.length,
+        errors: errors.length,
+      },
+    };
+  } catch (error) {
+    await transaction.rollback();
+    logger.error(`Error in batch skill creation: ${error.message}`);
+    throw new InternalServerError('Failed to batch create skills');
+  }
+};
+
+/**
  * Delete a skill (with cache invalidation)
  * @param {string} skillId - UUID of the skill
  * @returns {boolean} True if deleted successfully
@@ -294,6 +385,7 @@ module.exports = {
   getAllSkills,
   getSkillById,
   createSkill,
+  batchCreateSkills,
   updateSkill,
   deleteSkill,
 };

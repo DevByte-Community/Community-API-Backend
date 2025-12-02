@@ -3,6 +3,7 @@ const {
   getAllSkills,
   getSkillById,
   createSkill,
+  batchCreateSkills,
   updateSkill,
   deleteSkill,
 } = require('../services/skillService');
@@ -13,6 +14,7 @@ const {
   paginationQuerySchema,
   createSkillSchema,
   updateSkillSchema,
+  batchCreateSkillsSchema,
 } = require('../utils/validator');
 const Validator = require('../utils/index');
 
@@ -70,7 +72,7 @@ const createSkillController = asyncHandler(async (req, res) => {
   // Validate request body
   const { _value, errorResponse } = Validator.validate(createSkillSchema, req.body);
   if (errorResponse) {
-    return res.status(400).json(errorResponse);
+    throw new ValidationError(errorResponse.message || 'Validation failed');
   }
 
   // Set creator to current user (admin/root creating the skill)
@@ -87,6 +89,35 @@ const createSkillController = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Batch create multiple skills
+ * @route POST /api/v1/skills/batch
+ * @access Private (Admin/Root only)
+ */
+const batchCreateSkillsController = asyncHandler(async (req, res) => {
+  // Validate request body
+  const { _value, errorResponse } = Validator.validate(batchCreateSkillsSchema, req.body);
+  if (errorResponse) {
+    throw new ValidationError(errorResponse.message || 'Validation failed');
+  }
+
+  // Set creator to current user (admin/root creating the skills)
+  const createdBy = req.user?.id || null;
+  const result = await batchCreateSkills(_value.skills, createdBy);
+
+  logger.info(
+    `Batch created ${result.summary.created} skills, skipped ${result.summary.skipped}, errors: ${result.summary.errors} by user: ${createdBy}`
+  );
+
+  const statusCode = result.summary.errors.length > 0 ? 207 : 201; // 207 Multi-Status if partial success
+
+  return res.status(statusCode).json({
+    success: true,
+    message: `Batch skill creation completed. Created: ${result.summary.created}, Skipped: ${result.summary.skipped}, Errors: ${result.summary.errors}`,
+    ...result,
+  });
+});
+
+/**
  * Update an existing skill
  * @route PATCH /api/v1/skills/:id
  * @access Private (Admin/Root only)
@@ -95,12 +126,12 @@ const updateSkillController = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   // Validate request body
-  const { value, errorResponse } = Validator.validate(updateSkillSchema, req.body);
+  const { _value, errorResponse } = Validator.validate(updateSkillSchema, req.body);
   if (errorResponse) {
-    return res.status(400).json(errorResponse);
+    throw new ValidationError(errorResponse.message || 'Validation failed');
   }
 
-  const skill = await updateSkill(id, value);
+  const skill = await updateSkill(id, _value);
 
   logger.info(`Skill updated: ${id}`);
 
@@ -133,6 +164,7 @@ module.exports = {
   getAllSkills: getAllSkillsController,
   getSkillById: getSkillByIdController,
   createSkill: createSkillController,
+  batchCreateSkills: batchCreateSkillsController,
   updateSkill: updateSkillController,
   deleteSkill: deleteSkillController,
 };
