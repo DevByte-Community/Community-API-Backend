@@ -9,10 +9,18 @@ const {
   deleteUserAccount,
   changeUserPassword,
   getAllUsers,
+  addSkillToUser,
+  removeSkillFromUser,
+  getUserSkills,
 } = require('../../services/userService');
 const { minioClient } = require('../../utils/minioClient');
-const { User } = require('../../models');
-const { InternalServerError, NotFoundError, ValidationError } = require('../../utils/customErrors');
+const { Skill } = require('../../models');
+const {
+  InternalServerError,
+  NotFoundError,
+  ValidationError,
+  ConflictError,
+} = require('../../utils/customErrors');
 
 // 🧠 Mock dependencies
 jest.mock('../../utils/minioClient', () => ({
@@ -25,13 +33,26 @@ jest.mock('../../utils/minioClient', () => ({
 
 const mockCount = jest.fn();
 const mockFindAll = jest.fn();
+const mockUserFindByPk = jest.fn();
+const mockSkillFindByPk = jest.fn();
+const mockUserSkillsFindOne = jest.fn();
+const mockUserSkillsCreate = jest.fn();
+
+const mockUserFindOne = jest.fn();
 
 jest.mock('../../models', () => ({
   User: {
-    findOne: jest.fn(),
-    findByPk: jest.fn(),
+    findOne: (...args) => mockUserFindOne(...args),
+    findByPk: (...args) => mockUserFindByPk(...args),
     count: (...args) => mockCount(...args),
     findAll: (...args) => mockFindAll(...args),
+  },
+  Skill: {
+    findByPk: (...args) => mockSkillFindByPk(...args),
+  },
+  UserSkills: {
+    findOne: (...args) => mockUserSkillsFindOne(...args),
+    create: (...args) => mockUserSkillsCreate(...args),
   },
 }));
 
@@ -118,12 +139,12 @@ describe('USER_SERVICE', () => {
   // ----------------------------
   describe('updateProfileData', () => {
     it('✅ should update fullname and email successfully', async () => {
-      User.findOne.mockResolvedValueOnce(null); // no conflict
+      mockUserFindOne.mockResolvedValueOnce(null); // no conflict
 
       const updates = { fullname: 'Jane Doe', email: 'jane@example.com' };
       const result = await updateProfileData(mockUser, updates);
 
-      expect(User.findOne).toHaveBeenCalledWith({ where: { email: 'jane@example.com' } });
+      expect(mockUserFindOne).toHaveBeenCalledWith({ where: { email: 'jane@example.com' } });
       expect(mockUser.fullname).toBe('Jane Doe');
       expect(mockUser.email).toBe('jane@example.com');
       expect(mockUser.save).toHaveBeenCalled();
@@ -135,7 +156,7 @@ describe('USER_SERVICE', () => {
     });
 
     it('❌ should throw 409 if email already exists', async () => {
-      User.findOne.mockResolvedValueOnce({ id: 99, email: 'existing@example.com' });
+      mockUserFindOne.mockResolvedValueOnce({ id: 99, email: 'existing@example.com' });
 
       const updates = { email: 'existing@example.com' };
       await expect(updateProfileData(mockUser, updates)).rejects.toThrow('Email already in use');
@@ -161,12 +182,12 @@ describe('USER_SERVICE', () => {
         destroy: jest.fn().mockResolvedValue(true),
       };
 
-      User.findByPk.mockResolvedValueOnce(mockUserForDelete);
+      mockUserFindByPk.mockResolvedValueOnce(mockUserForDelete);
       minioClient.removeObject.mockResolvedValueOnce(true);
 
       const result = await deleteUserAccount('user-123', 'privacy');
 
-      expect(User.findByPk).toHaveBeenCalledWith('user-123');
+      expect(mockUserFindByPk).toHaveBeenCalledWith('user-123');
       expect(minioClient.removeObject).toHaveBeenCalledWith('test-bucket', 'profile_picture_1.png');
       expect(mockUserForDelete.destroy).toHaveBeenCalled();
       expect(result).toBe(true);
@@ -180,27 +201,27 @@ describe('USER_SERVICE', () => {
         destroy: jest.fn().mockResolvedValue(true),
       };
 
-      User.findByPk.mockResolvedValueOnce(mockUserNoPicture);
+      mockUserFindByPk.mockResolvedValueOnce(mockUserNoPicture);
 
       const result = await deleteUserAccount('user-456', 'privacy');
 
-      expect(User.findByPk).toHaveBeenCalledWith('user-456');
+      expect(mockUserFindByPk).toHaveBeenCalledWith('user-456');
       expect(minioClient.removeObject).not.toHaveBeenCalled();
       expect(mockUserNoPicture.destroy).toHaveBeenCalled();
       expect(result).toBe(true);
     });
 
     it('❌ throws NotFoundError when user is not found', async () => {
-      User.findByPk.mockResolvedValueOnce(null);
+      mockUserFindByPk.mockResolvedValueOnce(null);
 
       await expect(deleteUserAccount('missing-id', 'privacy')).rejects.toThrow(NotFoundError);
 
-      expect(User.findByPk).toHaveBeenCalledWith('missing-id');
+      expect(mockUserFindByPk).toHaveBeenCalledWith('missing-id');
       expect(minioClient.removeObject).not.toHaveBeenCalled();
     });
 
     it('⚠️ wraps unexpected errors in InternalServerError', async () => {
-      User.findByPk.mockRejectedValueOnce(new Error('DB down'));
+      mockUserFindByPk.mockRejectedValueOnce(new Error('DB down'));
 
       await expect(deleteUserAccount('user-123', 'privacy')).rejects.toThrow(InternalServerError);
 
@@ -380,6 +401,187 @@ describe('USER_SERVICE', () => {
       mockCount.mockRejectedValueOnce(new Error('Database connection failed'));
 
       await expect(getAllUsers()).rejects.toThrow(InternalServerError);
+    });
+  });
+
+  // ----------------------------
+  // addSkillToUser Tests
+  // ----------------------------
+  describe('addSkillToUser', () => {
+    const mockUser = {
+      id: 'user-123',
+      email: 'test@example.com',
+    };
+
+    const mockSkill = {
+      id: 'skill-123',
+      name: 'JavaScript',
+      description: 'Programming language',
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('✅ should add skill to user successfully', async () => {
+      mockSkillFindByPk.mockResolvedValue(mockSkill);
+      mockUserSkillsFindOne.mockResolvedValue(null); // Skill not already assigned
+      mockUserSkillsCreate.mockResolvedValue({
+        userId: mockUser.id,
+        skillId: mockSkill.id,
+      });
+
+      const result = await addSkillToUser(mockUser, 'skill-123');
+
+      expect(mockSkillFindByPk).toHaveBeenCalledWith('skill-123');
+      expect(mockUserSkillsFindOne).toHaveBeenCalledWith({
+        where: {
+          userId: mockUser.id,
+          skillId: 'skill-123',
+        },
+      });
+      expect(mockUserSkillsCreate).toHaveBeenCalledWith({
+        userId: mockUser.id,
+        skillId: 'skill-123',
+      });
+      expect(result).toEqual(mockSkill);
+    });
+
+    it('❌ should throw NotFoundError when skill does not exist', async () => {
+      mockSkillFindByPk.mockResolvedValue(null);
+
+      await expect(addSkillToUser(mockUser, 'non-existent')).rejects.toThrow(NotFoundError);
+      expect(mockUserSkillsCreate).not.toHaveBeenCalled();
+    });
+
+    it('❌ should throw ConflictError when user already has the skill', async () => {
+      mockSkillFindByPk.mockResolvedValue(mockSkill);
+      mockUserSkillsFindOne.mockResolvedValue({
+        userId: mockUser.id,
+        skillId: 'skill-123',
+      }); // Skill already assigned
+
+      await expect(addSkillToUser(mockUser, 'skill-123')).rejects.toThrow(ConflictError);
+      expect(mockUserSkillsCreate).not.toHaveBeenCalled();
+    });
+
+    it('❌ should throw InternalServerError on database error', async () => {
+      mockSkillFindByPk.mockRejectedValue(new Error('DB Error'));
+
+      await expect(addSkillToUser(mockUser, 'skill-123')).rejects.toThrow(InternalServerError);
+    });
+  });
+
+  // ----------------------------
+  // removeSkillFromUser Tests
+  // ----------------------------
+  describe('removeSkillFromUser', () => {
+    const mockUser = {
+      id: 'user-123',
+      email: 'test@example.com',
+    };
+
+    const mockUserSkill = {
+      userId: 'user-123',
+      skillId: 'skill-123',
+      destroy: jest.fn().mockResolvedValue(true),
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('✅ should remove skill from user successfully', async () => {
+      mockUserSkillsFindOne.mockResolvedValue(mockUserSkill);
+
+      const result = await removeSkillFromUser(mockUser, 'skill-123');
+
+      expect(mockUserSkillsFindOne).toHaveBeenCalledWith({
+        where: {
+          userId: mockUser.id,
+          skillId: 'skill-123',
+        },
+      });
+      expect(mockUserSkill.destroy).toHaveBeenCalled();
+      expect(result).toBe(true);
+    });
+
+    it('❌ should throw NotFoundError when user does not have the skill', async () => {
+      mockUserSkillsFindOne.mockResolvedValue(null);
+
+      await expect(removeSkillFromUser(mockUser, 'skill-123')).rejects.toThrow(NotFoundError);
+    });
+
+    it('❌ should throw InternalServerError on database error', async () => {
+      mockUserSkillsFindOne.mockRejectedValue(new Error('DB Error'));
+
+      await expect(removeSkillFromUser(mockUser, 'skill-123')).rejects.toThrow(InternalServerError);
+    });
+  });
+
+  // ----------------------------
+  // getUserSkills Tests
+  // ----------------------------
+  describe('getUserSkills', () => {
+    const mockUser = {
+      id: 'user-123',
+      email: 'test@example.com',
+    };
+
+    const mockSkills = [
+      { id: 'skill-1', name: 'JavaScript' },
+      { id: 'skill-2', name: 'Python' },
+    ];
+
+    const mockUserWithSkills = {
+      id: 'user-123',
+      skills: mockSkills,
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('✅ should return user skills array', async () => {
+      mockUserFindByPk.mockResolvedValue(mockUserWithSkills);
+
+      const result = await getUserSkills(mockUser);
+
+      expect(mockUserFindByPk).toHaveBeenCalledWith(mockUser.id, {
+        include: [
+          {
+            model: Skill,
+            as: 'skills',
+            through: { attributes: [] },
+          },
+        ],
+      });
+      expect(result).toEqual(mockSkills);
+    });
+
+    it('✅ should return empty array when user has no skills', async () => {
+      mockUserFindByPk.mockResolvedValue({
+        id: 'user-123',
+        skills: [],
+      });
+
+      const result = await getUserSkills(mockUser);
+
+      expect(result).toEqual([]);
+    });
+
+    it('✅ should return empty array when user is null', async () => {
+      mockUserFindByPk.mockResolvedValue(null);
+
+      const result = await getUserSkills(mockUser);
+
+      expect(result).toEqual([]);
+    });
+
+    it('❌ should throw InternalServerError on database error', async () => {
+      mockUserFindByPk.mockRejectedValue(new Error('DB Error'));
+
+      await expect(getUserSkills(mockUser)).rejects.toThrow(InternalServerError);
     });
   });
 });

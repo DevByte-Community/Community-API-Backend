@@ -6,6 +6,9 @@ const {
   deleteAccount,
   changePassword,
   getAllUsers,
+  addSkillToUser,
+  removeSkillFromUser,
+  getUserSkills,
 } = require('../controllers/userController');
 const { authenticateJWT } = require('../middleware/authMiddleware');
 const { handleMulterUpload } = require('../middleware/uploadMiddleware');
@@ -525,5 +528,192 @@ router.delete('/account', authenticateJWT, deleteAccount);
  *         description: Unauthorized
  */
 router.put('/password', authenticateJWT, changePassword);
+
+/**
+ * @swagger
+ * /api/v1/users/me/skills:
+ *   get:
+ *     summary: Get all skills for authenticated user
+ *     description: Retrieve all skills associated with the authenticated user's profile.
+ *     tags: [User]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: User skills retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: User skills retrieved successfully
+ *                 skills:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                         example: 123e4567-e89b-12d3-a456-426614174000
+ *                       name:
+ *                         type: string
+ *                         example: JavaScript
+ *                       description:
+ *                         type: string
+ *                         nullable: true
+ *                         example: Programming language for web development
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2025-01-15T10:30:00.000Z
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2025-01-20T14:45:00.000Z
+ *                 count:
+ *                   type: integer
+ *                   example: 5
+ *             example:
+ *               success: true
+ *               message: User skills retrieved successfully
+ *               skills:
+ *                 - id: 123e4567-e89b-12d3-a456-426614174000
+ *                   name: JavaScript
+ *                   description: Programming language for web development
+ *                   createdAt: 2025-01-15T10:30:00.000Z
+ *                   updatedAt: 2025-01-20T14:45:00.000Z
+ *               count: 1
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/me/skills', authenticateJWT, getUserSkills);
+
+/**
+ * @swagger
+ * /api/v1/users/me/skills:
+ *   post:
+ *     summary: Add a skill to authenticated user's profile
+ *     description: Add a skill to the authenticated user's skills list. The skill must exist in the system.
+ *     tags: [User]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - skillId
+ *             properties:
+ *               skillId:
+ *                 type: string
+ *                 format: uuid
+ *                 example: 123e4567-e89b-12d3-a456-426614174000
+ *                 description: UUID of the skill to add
+ *     responses:
+ *       200:
+ *         description: Skill added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Skill added to your profile successfully
+ *                 skill:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                       example: 123e4567-e89b-12d3-a456-426614174000
+ *                     name:
+ *                       type: string
+ *                       example: JavaScript
+ *                     description:
+ *                       type: string
+ *                       nullable: true
+ *                       example: Programming language for web development
+ *             example:
+ *               success: true
+ *               message: Skill added to your profile successfully
+ *               skill:
+ *                 id: 123e4567-e89b-12d3-a456-426614174000
+ *                 name: JavaScript
+ *                 description: Programming language for web development
+ *       400:
+ *         description: Bad request - Validation error or skill already exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: User already has this skill
+ *             example:
+ *               success: false
+ *               message: User already has this skill
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Skill not found
+ */
+router.post('/me/skills', authenticateJWT, addSkillToUser);
+
+/**
+ * @swagger
+ * /api/v1/users/me/skills/{skillId}:
+ *   delete:
+ *     summary: Remove a skill from authenticated user's profile
+ *     description: Remove a skill from the authenticated user's skills list.
+ *     tags: [User]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: skillId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: UUID of the skill to remove
+ *     responses:
+ *       200:
+ *         description: Skill removed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Skill removed from your profile successfully
+ *             example:
+ *               success: true
+ *               message: Skill removed from your profile successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Skill not found or user does not have this skill
+ */
+router.delete('/me/skills/:skillId', authenticateJWT, removeSkillFromUser);
 
 module.exports = router;
