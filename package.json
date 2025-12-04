@@ -16,8 +16,14 @@
         "db:stop": "docker-compose down",
         "prepare": "if [ \"$NODE_ENV\" != \"production\" ]; then husky install; fi",
         "migrate": "sequelize-cli db:migrate",
+        "migrate:status": "sequelize-cli db:migrate:status",
         "migrate:undo": "sequelize-cli db:migrate:undo",
-        "migration:generate": "sequelize-cli migration:generate --name"
+        "migrate:undo:all": "sequelize-cli db:migrate:undo:all",
+        "migration:generate": "sequelize-cli migration:generate --name",
+        "migrate:status:prod": "cross-env NODE_ENV=production sequelize-cli db:migrate:status",
+        "migrate:prod": "cross-env NODE_ENV=production sequelize-cli db:migrate",
+        "migrate:undo:prod": "cross-env NODE_ENV=production sequelize-cli db:migrate:undo",
+        "migrate:undo:all:prod": "cross-env NODE_ENV=production sequelize-cli db:migrate:undo:all"
     },
     "lint-staged": {
         "*.js": [
