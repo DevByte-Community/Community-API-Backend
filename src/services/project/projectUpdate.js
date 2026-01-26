@@ -14,6 +14,8 @@ const {
 const { uploadProjectCoverImage, deleteImage } = require('../../utils/imageUploader');
 const { extractObjectKeyFromUrl } = require('../../utils/imageUploader');
 
+const { invalidateDashboardMetrics } = require('../../cache/metricsCache');
+
 const logger = createLogger('PROJECT_UPDATE');
 
 /**
@@ -153,6 +155,9 @@ const updateProject = async (
     }
 
     await project.update(updateData, { transaction });
+
+    // Invalidate metrics cache on updated project(Fire-and-forget)
+      invalidateDashboardMetrics();
 
     // Update techs if provided
     await updateProjectTechs(project, projectData.techs, transaction);
