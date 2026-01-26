@@ -107,6 +107,9 @@ const createProject = async (
       { transaction }
     );
 
+    // Invalidate metrics cache on Project(Fire-and-forget)
+    invalidateDashboardMetrics();
+
     // If file is provided, upload it to MinIO and update project
     if (fileBuffer && originalFileName && mimeType) {
       const coverImageUrl = await uploadCoverImage(project, fileBuffer, originalFileName, mimeType);

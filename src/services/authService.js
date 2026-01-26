@@ -25,9 +25,9 @@ class AuthService {
         roles: 'USER',
       });
 
-      // Invalidate metrics cache on new user signup
+      // Invalidate metrics cache on new user signup(Fire-and-forget)
       invalidateDashboardMetrics();
-      
+
       // Fire-and-forget default preferences creation
       void createDefaultUserPreferences(user.id)
         .then((preferences) => {
