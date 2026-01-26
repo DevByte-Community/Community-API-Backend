@@ -5,6 +5,7 @@ const { User } = require('../models');
 const { generateTokens, verifyRefreshToken } = require('../utils/jwt');
 const createLogger = require('../utils/logger');
 const { createDefaultUserPreferences } = require('./preferenceService');
+const { invalidateDashboardMetrics } = require('../cache/metricsCache'); 
 
 const logger = createLogger('AUTH_SERVICE');
 
@@ -23,6 +24,10 @@ class AuthService {
         password: password_hash,
         roles: 'USER',
       });
+
+      // Invalidate metrics cache on new user signup
+      invalidateDashboardMetrics();
+      
       // Fire-and-forget default preferences creation
       void createDefaultUserPreferences(user.id)
         .then((preferences) => {
