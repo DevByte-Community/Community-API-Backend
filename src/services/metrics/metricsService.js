@@ -1,6 +1,6 @@
 const { Op, fn, col } = require('sequelize');
 const createLogger = require('../../utils/logger');
-const { User, Project, Event, Blog } = require('../../models');
+const { User, Project, Blog } = require('../../models');
 const {
     getDashboardMetrics,
     setDashboardMetrics,
@@ -49,20 +49,29 @@ const getDashboardData = async () => {
     });
 
     // Upcoming Events (next 14 days)
-    const upcomingSince = new Date(now);
-    const upcomingUntil = new Date(now);
-    upcomingUntil.setDate(now.getDate() + 14);
-    const prevUpcomingSince = new Date(now);
-    const prevUpcomingUntil = new Date(now);
-    prevUpcomingSince.setDate(now.getDate() - 14);
-    prevUpcomingUntil.setDate(now.getDate());
+    // const upcomingSince = new Date(now);
+    // const upcomingUntil = new Date(now);
+    // upcomingUntil.setDate(now.getDate() + 14);
+    // const prevUpcomingSince = new Date(now);
+    // const prevUpcomingUntil = new Date(now);
+    // prevUpcomingSince.setDate(now.getDate() - 14);
+    // prevUpcomingUntil.setDate(now.getDate());
+    // const upcomingEventsCount = await Event.count({
+    //     where: { startDate: { [Op.between]: [upcomingSince, upcomingUntil] } },
+    // });
+    // const prevUpcomingEventsCount = await Event.count({
+    //     where: { startDate: { [Op.between]: [prevUpcomingSince, prevUpcomingUntil] } },
+    // });
 
-    const upcomingEventsCount = await Event.count({
-        where: { startDate: { [Op.between]: [upcomingSince, upcomingUntil] } },
-    });
-    const prevUpcomingEventsCount = await Event.count({
-        where: { startDate: { [Op.between]: [prevUpcomingSince, prevUpcomingUntil] } },
-    });
+    // Upcoming Events (temporarily disabled – model not implemented yet)
+    const upcomingEventsCount = 0;
+    const prevUpcomingEventsCount = 0;
+    
+    
+
+    
+
+
 
     // Blog Posts (published)
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -70,7 +79,11 @@ const getDashboardData = async () => {
     const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
     const blogPostsCount = await Blog.count({ where: { status: 'published' } });
-    const prevBlogPostsCount = await Blog.count({ where: { status: 'published' }});
+    const prevBlogPostsCount = await Blog.count({ 
+        where: { 
+            status: 'published', createdAt: { [Op.between]: [prevMonthStart, prevMonthEnd] },
+        },
+    });
 
     const metrics = {
         activeMembers: {

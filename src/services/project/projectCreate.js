@@ -11,6 +11,7 @@ const {
   invalidateUserProjectCaches,
 } = require('../../cache/projectCache');
 const { uploadProjectCoverImage } = require('../../utils/imageUploader');
+const { invalidateDashboardMetrics } = require('../../cache/metricsCache');
 
 const logger = createLogger('PROJECT_CREATE');
 

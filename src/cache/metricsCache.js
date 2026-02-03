@@ -1,4 +1,4 @@
-const { client } = require('../redisClient');
+const { client } = require('../utils/redisClient');
 
 const DASHBOARD_KEY = 'metrics:dashboard:v1';
 
