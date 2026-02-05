@@ -3,25 +3,38 @@ const router = express.Router();
 const { getDashboardMetrics } = require('../controllers/metricsController');
 
 
-
 /**
  * @swagger
  * /api/v1/metrics/dashboard:
  *   get:
- *     summary: Get dashboard metrics
- *     description: Returns counts and trends for members, projects, events, and blog posts
- *     tags:
- *       - Metrics
+ *     tags: [Metrics]
  *     responses:
  *       200:
  *         description: Dashboard metrics retrieved successfully
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/DashboardMetricsResponse'
- *       500:
- *         description: Internal server error
+ *             example:
+ *               success: true
+ *               message: Dashboard metrics retrieved successfully
+ *               activeMembers:
+ *                 count: 1
+ *                 trend: 0
+ *                 description: Users active in last 7 days
+ *               activeProjects:
+ *                 count: 1
+ *                 trend: 0
+ *                 description: Projects updated in last 30 days
+ *               upcomingEvents:
+ *                 count: 0
+ *                 trend: 0
+ *                 description: Events starting in next 14 days
+ *               blogPosts:
+ *                 count: 1
+ *                 trend: 0
+ *                 description: Total published blog posts
+ *               lastUpdated: 2026-02-05T16:59:20.636Z
  */
+
 
 router.get('/dashboard', getDashboardMetrics);
 

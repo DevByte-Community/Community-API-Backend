@@ -16,7 +16,10 @@ const calculateTrend = (current, previous) => {
 const getDashboardData = async () => {
     // try cache first
     const cached = await getDashboardMetrics();
-    if (cached) return cached;
+    if (cached) {
+        console.log('⚡ Served dashboard metrics from cache');
+        return cached;
+    }
 
     const now = new Date();
 

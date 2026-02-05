@@ -13,27 +13,65 @@ const options = {
       schemas: {
         DashboardMetric: {
           type: 'object',
+          description: 'Single dashboard metric with count and trend',
           properties: {
-            count: { type: 'integer', example: 1 },
-            trend: { type: 'integer', example: 0, description: 'Percentage change vs previous period' },
-            description: { type: 'string', example: 'Users active in last 7 days' },
+            count: {
+              type: 'integer',
+              description: 'Metric count',
+            },
+            trend: {
+              type: 'integer',
+              description: 'Percentage change vs previous period',
+            },
+            description: {
+              type: 'string',
+              description: 'Human-readable description of the metric',
+            },
           },
           required: ['count', 'trend', 'description'],
         },
+
         DashboardMetricsResponse: {
           type: 'object',
           properties: {
-            success: { type: 'boolean', example: true },
-            message: { type: 'string', example: 'Dashboard metrics retrieved successfully' },
-            activeMembers: { $ref: '#/components/schemas/DashboardMetric' },
-            activeProjects: { $ref: '#/components/schemas/DashboardMetric' },
-            upcomingEvents: { $ref: '#/components/schemas/DashboardMetric' },
-            blogPosts: { $ref: '#/components/schemas/DashboardMetric' },
-            lastUpdated: { type: 'string', format: 'date-time', example: '2026-02-05T16:59:20.636Z' },
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Dashboard metrics retrieved successfully',
+            },
+            activeMembers: {
+              $ref: '#/components/schemas/DashboardMetric',
+            },
+            activeProjects: {
+              $ref: '#/components/schemas/DashboardMetric',
+            },
+            upcomingEvents: {
+              $ref: '#/components/schemas/DashboardMetric',
+            },
+            blogPosts: {
+              $ref: '#/components/schemas/DashboardMetric',
+            },
+            lastUpdated: {
+              type: 'string',
+              format: 'date-time',
+              example: '2026-02-05T16:59:20.636Z',
+            },
           },
-          required: ['success', 'message', 'activeMembers', 'activeProjects', 'upcomingEvents', 'blogPosts', 'lastUpdated'],
+          required: [
+            'success',
+            'message',
+            'activeMembers',
+            'activeProjects',
+            'upcomingEvents',
+            'blogPosts',
+            'lastUpdated',
+          ],
         },
       },
+
       securitySchemes: {
         cookieAuth: {
           type: 'apiKey',
@@ -42,12 +80,13 @@ const options = {
         },
       },
     },
-    security: [{ bearerAuth: [] }, { cookieAuth: [] }],  // Make JWT globally available
+
+    security: [{ bearerAuth: [] }, { cookieAuth: [] }],
   },
-  apis: ['./src/routes/*.js'], // Path to the API docs
+
+  apis: ['./src/routes/*.js'],
 };
 
 const swaggerSpec = swaggerJsdoc(options);
 
 module.exports = swaggerSpec;
-
