@@ -1,0 +1,7 @@
+const LEARNING_LEVEL_VALUES = [
+  'BEGINNER',
+  'INTERMEDIATE',
+  'ADVANCED',
+];
+
+module.exports = { LEARNING_LEVEL_VALUES };

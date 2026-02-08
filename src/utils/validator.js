@@ -185,7 +185,7 @@ const updateSkillSchema = Joi.object({
 const addSkillToUserSchema = Joi.object({
   skillId: Joi.string().uuid().required().messages({
     'string.empty': 'Skill ID is required',
-    'string.guid': 'Skill ID must be a valid UUID',
+    'string.uuid': 'Skill ID must be a valid UUID',
     'any.required': 'Skill ID is required',
   }),
 });
@@ -286,17 +286,19 @@ const blogQuerySchema = Joi.object({
     'string.base': 'Topic must be a string',
   }),
   createdBy: Joi.string().uuid().optional().messages({
-    'string.guid': 'createdBy must be a valid UUID',
+    'string.uuid': 'createdBy must be a valid UUID',
   }),
 });
 
 const blogIdParamSchema = Joi.object({
   id: Joi.string().uuid().required().messages({
     'string.empty': 'Blog ID is required',
-    'string.guid': 'Blog ID must be a valid UUID',
+    'string.uuid': 'Blog ID must be a valid UUID',
     'any.required': 'Blog ID is required',
   }),
 });
+
+const { LEARNING_LEVEL_VALUES } = require('../constants/learningConstants');
 
 const techSchema = Joi.object({
   name: Joi.string().min(1).max(255).required().messages({
@@ -399,11 +401,7 @@ const updateProjectSchema = Joi.object({
   contributors: Joi.array().items(Joi.string().uuid()).optional().messages({
     'array.base': 'Contributors must be an array',
   }),
-})
-  .min(1)
-  .messages({
-    'object.min': 'At least one field must be provided',
-  });
+});
 
 // Query Schema for GET /projects
 const projectQuerySchema = Joi.object({
@@ -451,6 +449,72 @@ const manageContributorsSchema = Joi.object({
   }),
 });
 
+const createLearningSchema = Joi.object({
+  name: Joi.string().min(2).max(255).trim().required().messages({
+    'string.empty': 'Name is required',
+    'string.min': 'Name must be at least 2 characters long',
+    'string.max': 'Name must not exceed 255 characters',
+  }),
+  description: Joi.string().min(10).trim().required().messages({
+    'string.empty': 'Description is required',
+    'string.min': 'Description must be at least 10 characters long',
+  }),
+  contentUrl: Joi.string().uri().trim().allow('', null).optional().messages({
+    'string.uri': 'Content URL must be a valid URL',
+  }),
+  techs: Joi.array()
+    .items(Joi.string().uuid())
+    .min(1)
+    .required()
+    .messages({
+      'array.min': 'At least one tech is required',
+      'array.base': 'Techs must be an array',
+      'string.uuid': 'Each tech must be a valid UUID',
+    }),
+  duration: Joi.number().integer().min(1).optional().messages({
+    'number.base': 'Duration must be a number',
+    'number.integer': 'Duration must be an integer',
+    'number.min': 'Duration must be at least 1 minute',
+  }),
+  level: Joi.string()
+    .valid(...LEARNING_LEVEL_VALUES)
+    .required()
+    .messages({
+      'any.only': `Level must be one of: ${LEARNING_LEVEL_VALUES.join(', ')}`,
+    }),
+});
+
+const updateLearningSchema = Joi.object({
+  name: Joi.string().min(2).max(255).trim().optional(),
+  description: Joi.string().min(10).trim().optional(),
+  contentUrl: Joi.string().uri().trim().allow('', null).optional(),
+  techs: Joi.array().items(Joi.string().uuid()).min(1).optional(),
+  duration: Joi.number().integer().min(1).optional(),
+  level: Joi.string()
+    .valid(...LEARNING_LEVEL_VALUES)
+    .optional(),
+})
+  .min(1)
+  .messages({
+    'object.min': 'At least one field must be provided',
+  });
+
+const learningQuerySchema = Joi.object({
+  page: Joi.number().integer().min(1).default(1),
+  pageSize: Joi.number().integer().min(1).max(100).default(10),
+  level: Joi.string()
+    .valid(...LEARNING_LEVEL_VALUES)
+    .optional(),
+  userId: Joi.string().uuid().optional(),
+});
+
+const learningIdParamSchema = Joi.object({
+  id: Joi.string().uuid().required().messages({
+    'string.empty': 'Learning ID is required',
+    'string.uuid': 'Learning ID must be a valid UUID',
+  }),
+});
+
 module.exports = {
   signupSchema,
   signinSchema,
@@ -480,4 +544,8 @@ module.exports = {
   projectIdParamSchema,
   manageTechsSchema,
   manageContributorsSchema,
+  createLearningSchema,
+  updateLearningSchema,
+  learningQuerySchema,
+  learningIdParamSchema,
 };

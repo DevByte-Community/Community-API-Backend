@@ -18,6 +18,7 @@ const roleRoutes = require('./roleRoutes');
 const prefRoutes = require('./preferenceRoute');
 const skillRoutes = require('./skillRoutes');
 const techRoutes = require('./techRoutes');
+const learningRoutes = require('./learningRoutes');
 
 const router = express.Router();
 
@@ -33,6 +34,7 @@ router.use('/roles', roleRoutes);
 router.use('/users/me', prefRoutes);
 router.use('/skills', skillRoutes);
 router.use('/techs', techRoutes);
+router.use('/learnings', learningRoutes);
 
 // DB test route
 router.use('/test', dbRoutes);

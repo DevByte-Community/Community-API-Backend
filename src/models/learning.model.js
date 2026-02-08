@@ -5,11 +5,14 @@ const { uuidv7 } = require('uuidv7');
 module.exports = (sequelize, DataTypes) => {
   class Learning extends Model {
     static associate(models) {
-      // Learning creator
+      // Learning owner (the user who created it)
       Learning.belongsTo(models.User, {
-        foreignKey: 'createdBy',
-        as: 'creator',
-        onDelete: 'SET NULL',
+        foreignKey: {
+          name: 'userId',
+          field: 'user_id',
+        },
+        as: 'owner',
+        onDelete: 'CASCADE',
       });
 
       // Learning learners (many-to-many)
@@ -37,19 +40,19 @@ module.exports = (sequelize, DataTypes) => {
         primaryKey: true,
         defaultValue: () => uuidv7(),
       },
-      title: {
+      name: {
         type: DataTypes.STRING,
         allowNull: false,
         validate: {
           notNull: {
-            msg: 'Learning title is required',
+            msg: 'Learning name is required',
           },
           notEmpty: {
-            msg: 'Learning title cannot be empty',
+            msg: 'Learning name cannot be empty',
           },
           len: {
             args: [1, 255],
-            msg: 'Learning title must be between 1 and 255 characters',
+            msg: 'Learning name must be between 1 and 255 characters',
           },
         },
       },
@@ -63,48 +66,45 @@ module.exports = (sequelize, DataTypes) => {
           },
         },
       },
-      period: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        validate: {
-          len: {
-            args: [0, 50],
-            msg: 'Period cannot exceed 50 characters',
-          },
-        },
-      },
-      link: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        validate: {
-          isUrl: {
-            args: true,
-            msg: 'Link must be a valid URL',
-          },
-        },
-      },
-      coverImage: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        validate: {
-          isUrl: {
-            args: true,
-            msg: 'Cover image must be a valid URL or storage path',
-          },
-        },
-      },
-      featured: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false,
-      },
-      createdBy: {
+      userId: {
         type: DataTypes.UUID,
         allowNull: false,
+        field: 'user_id',
         references: {
           model: 'Users',
           key: 'id',
         },
-        onDelete: 'SET NULL',
+        onDelete: 'CASCADE',
+      },
+      contentUrl: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: 'content_url',
+        validate: {
+          isUrl: {
+            msg: 'Content URL must be a valid URL',
+          },
+        },
+      },
+      duration: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        validate: {
+          min: {
+            args: [1],
+            msg: 'Duration must be at least 1 minute',
+          },
+        },
+      },
+      level: {
+        type: DataTypes.ENUM('BEGINNER', 'INTERMEDIATE', 'ADVANCED'),
+        allowNull: false,
+        validate: {
+          isIn: {
+            args: [['BEGINNER', 'INTERMEDIATE', 'ADVANCED']],
+            msg: 'Level must be one of: BEGINNER, INTERMEDIATE, ADVANCED',
+          },
+        },
       },
     },
     {
@@ -112,19 +112,18 @@ module.exports = (sequelize, DataTypes) => {
       modelName: 'Learning',
       tableName: 'Learnings',
       timestamps: true,
-      paranoid: true,
       indexes: [
         {
-          name: 'learnings_title_idx',
-          fields: ['title'],
+          name: 'learnings_name_idx',
+          fields: ['name'],
         },
         {
-          name: 'learnings_created_by_idx',
-          fields: ['createdBy'],
+          name: 'learnings_user_id_idx',
+          fields: ['user_id'],
         },
         {
-          name: 'learnings_featured_idx',
-          fields: ['featured'],
+          name: 'learnings_level_idx',
+          fields: ['level'],
         },
       ],
     }
