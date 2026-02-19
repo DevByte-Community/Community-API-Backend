@@ -173,6 +173,26 @@ Run tests locally:
 ```bash
 npm test
 ```
+## Required installations
+
+```
+# Backend dependencies
+npm init -y
+npm install express sequelize pg pg-hstore bcryptjs jsonwebtoken
+npm install --save-dev jest supertest nodemon cross-env
+
+# Database tools
+npm install sequelize-cli -g
+
+# Security & validation
+npm install helmet cors express-validator multer
+
+# Logging
+npm install winston morgan
+
+# Testing
+npm install @types/jest ts-jest -D
+```
 <!--  "Authentication docs" section  -->
 
 ## Docs — Authentication & User Management

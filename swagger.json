@@ -1,0 +1,176 @@
+{
+  "paths": {
+    "/api/v1/partners": {
+      "get": {
+        "summary": "List all partners",
+        "description": "Public endpoint to list partners with optional search and pagination.",
+        "tags": ["Partners"],
+        "parameters": [
+          { "in": "query", "name": "page", "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "limit", "schema": { "type": "integer", "default": 20 } },
+          { "in": "query", "name": "search", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of partners",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PartnerListResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new partner",
+        "description": "Admin-only endpoint to create a partner record with logo upload.",
+        "tags": ["Partners"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "email": { "type": "string", "format": "email" },
+                  "logo": { "type": "string", "format": "binary" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Partner created successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PartnerResponse" }
+              }
+            }
+          },
+          "409": { "description": "Duplicate name or email" }
+        }
+      }
+    },
+    "/api/v1/partners/{id}": {
+      "get": {
+        "summary": "Get partner by ID",
+        "tags": ["Partners"],
+        "parameters": [
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Partner details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PartnerResponse" }
+              }
+            }
+          },
+          "404": { "description": "Partner not found" }
+        }
+      },
+      "patch": {
+        "summary": "Update partner",
+        "tags": ["Partners"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "email": { "type": "string", "format": "email" },
+                  "logo": { "type": "string", "format": "binary" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Partner updated successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PartnerResponse" }
+              }
+            }
+          },
+          "404": { "description": "Partner not found" },
+          "409": { "description": "Duplicate name or email" }
+        }
+      },
+      "delete": {
+        "summary": "Delete partner",
+        "tags": ["Partners"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Partner deleted successfully" },
+          "404": { "description": "Partner not found" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Partner": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "partner-001" },
+          "name": { "type": "string", "example": "TechCorp Inc." },
+          "description": { "type": "string", "example": "Leading tech innovator" },
+          "logo": { "type": "string", "example": "http://minio:9000/partners/partner-001_logo.svg" },
+          "email": { "type": "string", "format": "email", "example": "contact@techcorp.com" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "PartnerResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "message": { "type": "string" },
+          "partner": { "$ref": "#/components/schemas/Partner" }
+        }
+      },
+      "PartnerListResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Partner" }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": { "type": "integer" },
+              "limit": { "type": "integer" },
+              "total": { "type": "integer" }
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
