@@ -1,0 +1,8 @@
+[
+  {
+    "fullname": "Maya Admin",
+    "email": "maya.admin@example.com",
+    "password": "StrongPassword123!",
+    "role": "ADMIN"
+  }
+]

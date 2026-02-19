@@ -102,7 +102,20 @@ const requireRole = (minRole) => (req, _res, next) => {
     return next(new ForbiddenError(`Insufficient permissions. Minimum required role: ${minRole}`));
   }
 
-  return next();
+  next();
+};
+
+/**
+ * Middleware to check if user has admin role
+ */
+const adminOnly = (req, res, next) => {
+  if (!req.user || !req.user.hasRole('ADMIN')) {
+    return res.status(403).json({
+      error: 'Admin access required',
+      status: 403
+    });
+  }
+  next();
 };
 
 /**
@@ -116,4 +129,5 @@ module.exports = {
   authenticateJWT,
   requireAdmin,
   requireRoot,
+  adminOnly,
 };

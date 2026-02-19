@@ -1,4 +1,7 @@
 // services/userService.js
+const Sequelize = require('sequelize');
+const Op = Sequelize.Op;
+const Partner = require('../models/partner');
 const createLogger = require('../utils/logger');
 const {
   ValidationError,

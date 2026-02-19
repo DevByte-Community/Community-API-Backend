@@ -63,6 +63,8 @@ class AuthController {
     return res.status(200).json({
       message: result.message,
       success: result.success,
+      access_token: result.tokens.accessToken, // <-- add this 
+      refresh_token: result.tokens.refreshToken, // optional
     });
   });
 

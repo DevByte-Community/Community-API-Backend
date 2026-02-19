@@ -3,7 +3,7 @@
  * ------------------
  * Starts the Express server.
  */
-
+const swagger = require('../config/swagger.js');// Ensure swagger is loaded
 require('dotenv').config();
 require('./db'); // Ensure DB connection is established
 
@@ -59,3 +59,11 @@ app
     }
     throw err;
   });
+
+  // Add partner routes
+const partnerRoutes = require('./routes/partnerRoutes');
+app.use('/api/v1/partners', partnerRoutes);
+
+// Initialize MinIO bucket on startup
+const MinioService = require('./services/minioService');
+MinioService.initializeBucket().catch(console.error);

@@ -233,6 +233,7 @@ const getUserSkillsController = asyncHandler(async (req, res) => {
   });
 });
 
+
 module.exports = {
   updateProfilePicture,
   updateProfile,

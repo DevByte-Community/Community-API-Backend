@@ -1,5 +1,7 @@
 const { Client } = require('minio');
 const createLogger = require('../utils/logger');
+const config = require('../../config/config');
+ // Assuming you have a config file for environment variables
 
 const logger = createLogger('MINIO_CLIENT');
 
