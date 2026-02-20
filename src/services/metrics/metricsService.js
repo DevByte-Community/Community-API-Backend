@@ -51,20 +51,8 @@ const getDashboardData = async () => {
         where: { lastUpdated: { [Op.between]: [prevActiveProjectSince, activeProjectSince] } },
     });
 
-    // Upcoming Events (next 14 days)
-    // const upcomingSince = new Date(now);
-    // const upcomingUntil = new Date(now);
-    // upcomingUntil.setDate(now.getDate() + 14);
-    // const prevUpcomingSince = new Date(now);
-    // const prevUpcomingUntil = new Date(now);
-    // prevUpcomingSince.setDate(now.getDate() - 14);
-    // prevUpcomingUntil.setDate(now.getDate());
-    // const upcomingEventsCount = await Event.count({
-    //     where: { startDate: { [Op.between]: [upcomingSince, upcomingUntil] } },
-    // });
-    // const prevUpcomingEventsCount = await Event.count({
-    //     where: { startDate: { [Op.between]: [prevUpcomingSince, prevUpcomingUntil] } },
-    // });
+    
+    
 
     // Upcoming Events (temporarily disabled – model not implemented yet)
     const upcomingEventsCount = 0;
