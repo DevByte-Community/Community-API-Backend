@@ -18,9 +18,11 @@ const roleRoutes = require('./roleRoutes');
 const prefRoutes = require('./preferenceRoute');
 const skillRoutes = require('./skillRoutes');
 const techRoutes = require('./techRoutes');
+const metricsRoutes = require('./metricsRoutes');
 
 const router = express.Router();
 
+router.use('/metrics', metricsRoutes);
 router.use('/members', memberRoutes);
 router.use('/events', eventRoutes);
 router.use('/resources', resourceRoutes);

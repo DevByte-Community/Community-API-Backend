@@ -14,6 +14,8 @@ const { invalidateAllBlogCaches, invalidateBlogCache } = require('../../cache/bl
 const { checkBlogPermission, findBlogWithAuthor, reloadBlogWithAuthor } = require('./blogHelpers');
 const { uploadBlogCoverImage } = require('../../utils/imageUploader');
 
+const { invalidateDashboardMetrics } = require('../../cache/metricsCache');
+
 const logger = createLogger('BLOG_UPDATE');
 
 /**
@@ -78,6 +80,9 @@ const updateBlog = async (blogId, updates, userId, isAdmin = false) => {
     // Invalidate cache for this blog and all lists (since content changed)
     await invalidateBlogCache(blogId);
     await invalidateAllBlogCaches();
+
+    // Invalidate metrics cache on Blog update(Fire-and-forget)
+    invalidateDashboardMetrics();
 
     return blog;
   } catch (err) {

@@ -108,6 +108,10 @@ module.exports = (sequelize, DataTypes) => {
         },
         onDelete: 'CASCADE',
       },
+      lastUpdated: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
     },
     {
       sequelize,
@@ -127,6 +131,10 @@ module.exports = (sequelize, DataTypes) => {
         {
           name: 'projects_featured_idx',
           fields: ['featured'],
+        },
+        {
+          name: 'projects_last_updated_idx',
+          fields: ['lastUpdated'],
         },
       ],
     }

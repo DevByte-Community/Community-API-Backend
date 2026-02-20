@@ -11,6 +11,7 @@ const {
   invalidateUserProjectCaches,
 } = require('../../cache/projectCache');
 const { uploadProjectCoverImage } = require('../../utils/imageUploader');
+const { invalidateDashboardMetrics } = require('../../cache/metricsCache');
 
 const logger = createLogger('PROJECT_CREATE');
 
@@ -106,6 +107,9 @@ const createProject = async (
       },
       { transaction }
     );
+
+    // Invalidate metrics cache on Project(Fire-and-forget)
+    invalidateDashboardMetrics();
 
     // If file is provided, upload it to MinIO and update project
     if (fileBuffer && originalFileName && mimeType) {

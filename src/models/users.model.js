@@ -99,12 +99,22 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         defaultValue: null,
       },
+      lastActiveAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Last time user performed an action',
+      },
     },
     {
       sequelize,
       modelName: 'User',
       tableName: 'Users',
       timestamps: true,
+      indexes: [
+        {
+          fields: ['lastActiveAt'], // Performance for dashboard queries.
+        },
+      ],
     }
   );
 

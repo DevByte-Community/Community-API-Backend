@@ -64,12 +64,24 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: false,
       },
+      status: {
+        type: DataTypes.ENUM('draft', 'published'),
+        allowNull: false,
+        defaultValue: 'draft',
+      },
+      
     },
     {
       sequelize,
       modelName: 'Blog',
       tableName: 'Blogs',
       timestamps: true,
+      indexes: [
+        {
+          name: 'blog_status_idx',
+          fields: ['status'], 
+        },
+      ],
     }
   );
 
