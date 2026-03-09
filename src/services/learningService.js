@@ -119,7 +119,7 @@ const getAllLearnings = async (filters = {}) => {
           {
             model: User,
             as: 'owner',
-            attributes: ['id', 'fullname', 'email'],
+            attributes: ['id', 'fullname', 'email', 'profilePicture'],
           },
         ],
       }),
@@ -170,7 +170,7 @@ const getLearningById = async (learningId) => {
         {
           model: User,
           as: 'owner',
-          attributes: ['id', 'fullname', 'email'],
+          attributes: ['id', 'fullname', 'email', 'profilePicture'],
         },
       ],
     });
