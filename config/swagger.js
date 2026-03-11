@@ -18,7 +18,7 @@ const options = {
         },
       },
     },
-    security: [{ bearerAuth: [] }, { cookieAuth: [] }], // Make JWT globally available
+    security: [{ cookieAuth: [] }], // Make JWT globally available
   },
   apis: ['./src/routes/*.js'], // Path to the API docs
 };

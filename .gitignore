@@ -2,7 +2,7 @@ node_modules
 .env
 .early.coverage
 coverage
-
+.env.test
 resources
 
 .idea
